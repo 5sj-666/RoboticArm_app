@@ -1,0 +1,55 @@
+PODS:
+  - audioplayers_darwin (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - flutter_angle_darwin (0.0.2):
+    - Flutter
+    - FlutterMacOS
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - three_js_sensors (0.0.1):
+    - Flutter
+  - url_launcher_ios (0.0.1):
+    - Flutter
+  - webview_flutter_wkwebview (0.0.1):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - audioplayers_darwin (from `.symlinks/plugins/audioplayers_darwin/ios`)
+  - Flutter (from `Flutter`)
+  - flutter_angle_darwin (from `.symlinks/plugins/flutter_angle_darwin/darwin`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - three_js_sensors (from `.symlinks/plugins/three_js_sensors/ios`)
+  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
+  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
+
+EXTERNAL SOURCES:
+  audioplayers_darwin:
+    :path: ".symlinks/plugins/audioplayers_darwin/ios"
+  Flutter:
+    :path: Flutter
+  flutter_angle_darwin:
+    :path: ".symlinks/plugins/flutter_angle_darwin/darwin"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  three_js_sensors:
+    :path: ".symlinks/plugins/three_js_sensors/ios"
+  url_launcher_ios:
+    :path: ".symlinks/plugins/url_launcher_ios/ios"
+  webview_flutter_wkwebview:
+    :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
+
+SPEC CHECKSUMS:
+  audioplayers_darwin: 877d9a4d06331c5c374595e46e16453ac7eafa40
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  flutter_angle_darwin: 2d14730bf18cba8f4fd6e300f54e9eb33fcf658b
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  three_js_sensors: a68225ec18b20bffe682f9e46548796896c3329b
+  url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
+  webview_flutter_wkwebview: a4af96a051138e28e29f60101d094683b9f82188
+
+PODFILE CHECKSUM: 78d523d0b35f27d6f6b3009bc87353245fb6cca3
+
+COCOAPODS: 1.16.2
