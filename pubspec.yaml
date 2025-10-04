@@ -1,4 +1,4 @@
-name: namer_app
+name: robotic_arm_app
 description: A new Flutter project.
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,6 +16,15 @@ dependencies:
   provider: ^6.0.0
   three_js: ^0.0.7
   three_js_helpers: ^0.0.5
+  # plane_geometry: ^0.0.3
+  flutter_gl: ^0.0.21
+  
+
+  flutter_ai_toolkit: ^0.10.0
+  google_generative_ai: ^0.4.7
+  firebase_core: ^4.1.0
+  sliding_up_panel: ^2.0.0
+  cupertino_icons: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -39,3 +48,9 @@ flutter:
     - assets/top_arm.glb
     - assets/cybergearmotor.stp.glb
     - assets/wallfall1.jpg
+    - assets/zero.glb
+    - assets/one.glb
+    - assets/two.glb
+    - assets/three.glb
+    - assets/four.glb
+    - assets/five.glb

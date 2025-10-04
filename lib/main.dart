@@ -1,9 +1,10 @@
-import 'package:english_words/english_words.dart';
+// import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'pages/waterfall.dart';
+import 'pages/motions/waterfall.dart';
 import 'pages/profile.dart';
+import 'pages/ai_chat.dart';
 // import 'pages/devices.dart';
 import 'pages/devices_page.dart';
 
@@ -19,10 +20,15 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
       child: MaterialApp(
-        title: 'Namer App',
+        title: 'RobticArm_app',
         theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          // useMaterial3: true,
+          // colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.white,
+            primary: Colors.deepOrange,
+            onPrimary: Colors.red, // 推荐用白色，保证对比度
+          ),
         ),
         home: MyHomePage(),
       ),
@@ -31,15 +37,15 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
+  // var current = WordPair.random();
 }
 
 class MyHomePage extends StatefulWidget {
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  MyHomePageState createState() => MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
 
   // 定义页面列表
@@ -49,6 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Center(child: Text('Search Page')), // 搜索页
     // WebViewPage(url: 'https://flutter.dev'),
     DevicesPage(), // 设备页面
+    AiChatPage(), // AI聊天页面
     ProfilePage(), // 个人资料页
   ];
 
@@ -77,6 +84,8 @@ class _MyHomePageState extends State<MyHomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        unselectedItemColor: Colors.grey,
+        fixedColor: Colors.deepOrange,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.gesture),
@@ -85,6 +94,10 @@ class _MyHomePageState extends State<MyHomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.device_hub),
             label: '设备',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'AI',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
