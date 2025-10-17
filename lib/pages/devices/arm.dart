@@ -9,6 +9,9 @@ import 'package:three_js_helpers/three_js_helpers.dart';
 // import 'package:three_js_core/objects/mesh.dart';
 import 'package:flutter/services.dart';
 
+import 'package:robotic_arm_app/cubit/joints_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
 
@@ -18,6 +21,7 @@ class ArmPage extends StatefulWidget {
 
 class FlutterGameState extends State<ArmPage> {
   late three.ThreeJS threeJs;
+  late JointsCubit jointsCubit;
 
   @override
   void initState() {
@@ -27,6 +31,27 @@ class FlutterGameState extends State<ArmPage> {
       },
       setup: setup,
     );
+
+    jointsCubit = BlocProvider.of<JointsCubit>(context);
+
+    // 初始化关节cubit
+    // jointsCubit = JointsCubit();
+    // Future.delayed(const Duration(seconds: 5), () {
+    //   jointsCubit.setSingleJoint('joint1', 100.0);
+    // });
+    // Future.delayed(const Duration(seconds: 10), () {
+    //   jointsCubit.setJoints(Joints(
+    //       joint1: 45.0,
+    //       joint2: 30.0,
+    //       joint3: 15.0,
+    //       joint4: 60.0,
+    //       joint5: 90.0));
+    // });
+    // print('当前关节6: ${jointsCubit.state.joint6}');
+    // jointsCubit.stream.listen((joints) {
+    //   print('当前j1值: ${joints.joint1}');
+    // });
+
     super.initState();
   }
 
@@ -158,6 +183,7 @@ class FlutterGameState extends State<ArmPage> {
     // 类似web的requestAniamtionFrame
     threeJs.addAnimationEvent((dt) {
       // oneWrapper.rotation.y += 0.1;
+
       threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       // 渲染场景
       // threeJs.renderer!.render(threeJs.scene, threeJs.camera);
@@ -196,13 +222,19 @@ class FlutterGameState extends State<ArmPage> {
 
         fiveWrapper.add(five?.scene);
 
-        twoWrapper.rotation.z = math.pi / 180 * 10.0;
+        // twoWrapper.rotation.z = math.pi / 180 * 10.0;
+
         // oneWrapper.rotation.y = this.joint1;
         // twoWrapper.rotation.z = this.joint2;
         // threeWrapper.rotation.z = this.joint3;
 
         // fourWrapper.rotation.y = this.joint4;
         // fiveWrapper.rotation.z = this.joint5;
+        oneWrapper.rotation.y = -(jointsCubit.state.joint1 * math.pi) / 180;
+        twoWrapper.rotation.z = -(jointsCubit.state.joint2 * math.pi) / 180;
+        threeWrapper.rotation.z = -(jointsCubit.state.joint3 * math.pi) / 180;
+        fourWrapper.rotation.y = -(jointsCubit.state.joint4 * math.pi) / 180;
+        fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       });
