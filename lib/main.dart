@@ -7,10 +7,10 @@ import 'package:provider/provider.dart';
 // import 'pages/ai_chat.dart';
 // import 'pages/devices.dart';
 // import 'pages/devices_page.dart';
-import 'pages/my_home_page.dart';
+// import 'pages/my_home_page.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'app_router.dart';
+import 'app_router.dart';
 
 void main() {
   runApp(
@@ -25,13 +25,13 @@ void main() {
 class MyApp extends StatelessWidget {
   // const MyApp({super.key});
 
-  // final _appRouter = AppRouter();
+  final _appRouter = AppRouter();
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
-      child: MaterialApp(
+      child: MaterialApp.router(
         title: 'RobticArm_app',
         theme: ThemeData(
           // useMaterial3: true,
@@ -42,8 +42,8 @@ class MyApp extends StatelessWidget {
             onPrimary: Colors.red, // 推荐用白色，保证对比度
           ),
         ),
-        home: MyHomePage(),
-        // routerConfig: _appRouter.config(),
+        // home: MyHomePage(),
+        routerConfig: _appRouter.config(),
       ),
     );
   }

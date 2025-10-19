@@ -11,12 +11,12 @@ import 'devices_page.dart';
 // import 'package:flutter_bloc/flutter_bloc.dart';
 
 @RoutePage()
-class MyHomePage extends StatefulWidget {
+class HomeScreen extends StatefulWidget {
   @override
   MyHomePageState createState() => MyHomePageState();
 }
 
-class MyHomePageState extends State<MyHomePage> {
+class MyHomePageState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   // 定义页面列表
