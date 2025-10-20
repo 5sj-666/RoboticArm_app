@@ -12,7 +12,7 @@ class _AiChatPageState extends State<AiChatPage> {
   bool _isLoading = false;
 
   // 替换为你的 Gemini API Key
-  final String _apiKey = 'AIzaSyAgsGsG3T2MDp-ETQy8N4dx4i-RLT3RhFk';
+  final String _apiKey = '';
 
   Future<void> _sendMessage() async {
     final input = _controller.text.trim();
