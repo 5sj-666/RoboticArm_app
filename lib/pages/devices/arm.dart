@@ -25,6 +25,7 @@ class FlutterGameState extends State<ArmPage> {
 
   @override
   void initState() {
+    super.initState();
     threeJs = three.ThreeJS(
       onSetupComplete: () {
         setState(() {});
@@ -32,7 +33,7 @@ class FlutterGameState extends State<ArmPage> {
       setup: setup,
     );
 
-    jointsCubit = BlocProvider.of<JointsCubit>(context);
+    // jointsCubit = BlocProvider.of<JointsCubit>(context);
 
     // 初始化关节cubit
     // jointsCubit = JointsCubit();
@@ -51,28 +52,38 @@ class FlutterGameState extends State<ArmPage> {
     // jointsCubit.stream.listen((joints) {
     //   print('当前j1值: ${joints.joint1}');
     // });
+  }
 
-    super.initState();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 在这里安全获取 context 相关的依赖
+    jointsCubit = BlocProvider.of<JointsCubit>(context);
   }
 
   @override
   void dispose() {
+    super.dispose();
     threeJs.dispose();
     three.loading.clear();
     joystick?.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // return threeJs.build();
-    return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('Flutter Game'),
-      // ),
-      body: threeJs.build(),
-      // backgroundColor: Color.fromRGBO(33, 33, 33, 0.3),
-    );
+    final bool isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+
+    return isCurrent
+        ? FocusScope(
+            // 当不可见时禁止请求焦点，进一步避免抢焦点
+            canRequestFocus: true,
+            child: threeJs.build(),
+          )
+        : FocusScope(
+            // 当不可见时禁止请求焦点，进一步避免抢焦点
+            canRequestFocus: false,
+            child: threeJs.build(),
+          );
   }
 
   Map<LogicalKeyboardKey, bool> keyStates = {
@@ -184,7 +195,7 @@ class FlutterGameState extends State<ArmPage> {
     threeJs.addAnimationEvent((dt) {
       // oneWrapper.rotation.y += 0.1;
 
-      threeJs.renderer?.render(threeJs.scene, threeJs.camera);
+      // threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       // 渲染场景
       // threeJs.renderer!.render(threeJs.scene, threeJs.camera);
     });
