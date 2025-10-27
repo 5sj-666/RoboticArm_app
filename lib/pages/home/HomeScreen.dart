@@ -2,13 +2,14 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 // import 'package:provider/provider.dart';
 
-import 'motions/waterfall.dart';
+import '../motions/waterfall.dart';
 import 'profile.dart';
 import 'ai_chat.dart';
 // // import 'pages/devices.dart';
 import 'devices_page.dart';
 // import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 // import 'package:flutter_bloc/flutter_bloc.dart';
+// import '../../app_router.dart';
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -38,6 +39,8 @@ class MyHomePageState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // print('homescreen context: ${context.router}');
+    // context.router.push(NamedRoute('OrderKeyframeRoute'));
     return Scaffold(
       // appBar: AppBar(
       //   title: Text(''),

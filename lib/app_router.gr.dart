@@ -25,3 +25,19 @@ class HomeRoute extends PageRouteInfo<void> {
     },
   );
 }
+
+/// generated route for
+/// [OrderKeyframePage]
+class OrderKeyframeRoute extends PageRouteInfo<void> {
+  const OrderKeyframeRoute({List<PageRouteInfo>? children})
+      : super(OrderKeyframeRoute.name, initialChildren: children);
+
+  static const String name = 'OrderKeyframeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const OrderKeyframePage();
+    },
+  );
+}

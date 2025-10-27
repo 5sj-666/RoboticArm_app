@@ -26,14 +26,14 @@
         ],
       }, 
   **/
-// 具体关键帧
-class Keyframe {
+// 具体某个关节的关键帧
+class KeyframeItem {
   int time; // 毫秒
   double location; // 位置
   String timingFunction; // 贝塞尔曲线控制点 "0,0,1,1"
   int motorId; // 电机ID
 
-  Keyframe({
+  KeyframeItem({
     required this.time,
     required this.location,
     required this.timingFunction,
@@ -42,15 +42,19 @@ class Keyframe {
 }
 
 // 关节的关键帧集合
-class Keyframes {
+class Keyframe {
+  String title; // 关键帧标题
   String name; // 关节名称
   int motorId; // 电机ID
-  List<Keyframe> keyframes; // 关键帧列表
+  List<KeyframeItem> keyframe; // 关键帧列表
+  int time; // 毫秒
 
-  Keyframes({
+  Keyframe({
+    required this.title,
     required this.name,
     required this.motorId,
-    required this.keyframes,
+    required this.keyframe,
+    this.time = 0,
   });
 }
 
@@ -58,7 +62,7 @@ class Motion {
   String id; // 时间戳 + 随机数
   String name; // 动作名称
   String description; // 动作描述
-  List<Keyframes> joints;
+  List<Keyframe> joints;
 
   Motion({
     required this.id,

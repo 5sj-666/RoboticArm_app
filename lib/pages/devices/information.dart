@@ -7,7 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 
 import 'package:robotic_arm_app/components/joint_slider.dart';
-// import 'dart:ui';
+
+import 'package:auto_route/auto_route.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -126,37 +127,28 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                     max: i == 1 ? 130.0 : 180.0),
               )
           ]),
-          Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              // width: double.infinity,
-              // alignment: Alignment(0.83, 0.0),
-              children: [
-                FilledButton(
-                    onPressed: () {},
-                    style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll<Color>(
-                            Colors.blue.shade300)),
-                    child: const Text('设计动作',
-                        style: TextStyle(color: Colors.white))),
-                FilledButton(
-                    onPressed: () {},
-                    style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll<Color>(
-                            Colors.blue.shade300)),
-                    child: const Text('保存为关键帧',
-                        style: TextStyle(color: Colors.white))),
-              ]),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            FilledButton(
+                onPressed: () {
+                  context.router.push(NamedRoute('OrderKeyframeRoute'));
+                },
+                style: ButtonStyle(
+                    backgroundColor:
+                        WidgetStatePropertyAll<Color>(Colors.blue.shade300)),
+                child:
+                    const Text('设计动作', style: TextStyle(color: Colors.white))),
+            FilledButton(
+                onPressed: () async {
+                  print('保存为关键帧');
+                },
+                style: ButtonStyle(
+                    backgroundColor:
+                        WidgetStatePropertyAll<Color>(Colors.blue.shade300)),
+                child: const Text('保存为关键帧',
+                    style: TextStyle(color: Colors.white))),
+          ]),
         ]),
       ),
-
-      // panel: const Center(
-      //   child: Text('滑动面板内容'),
-      // ),
-      // 主内容区域
-      // body: ArmPage(),
-      // body: const Center(
-      //   child: Text('主内容区域'),
-      // ),
       // 面板顶部的滑块
       collapsed: Container(
         height: 60,

@@ -1,10 +1,11 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:robotic_arm_app/pages/HomeScreen.dart';
-// import 'package:robotic_arm_app/pages/motions/order_keyframe.dart';
+import 'package:robotic_arm_app/pages/home/HomeScreen.dart';
+import 'package:robotic_arm_app/pages/motions/design_motion.dart';
 
 part 'app_router.gr.dart';
 
-@AutoRouterConfig(replaceInRouteName: 'Screen,Route')
+// 页面名字中的page和screen会被替换成Route
+@AutoRouterConfig(replaceInRouteName: 'Page|Screen,Route')
 class AppRouter extends RootStackRouter {
   @override
   RouteType get defaultRouteType =>
@@ -12,11 +13,17 @@ class AppRouter extends RootStackRouter {
 
   @override
   List<AutoRoute> get routes => [
-        // HomeScreen is generated as HomeRoute because
-        // of the replaceInRouteName property
-        // AutoRoute(page: MyHomePage, initial: true),
-        // AutoRoute(page: OrderKeyframe.page),
-        AutoRoute(page: HomeRoute.page, initial: true)
+        // 手动定义路由
+        // NamedRouteDef(
+        //   name: 'BookDetailsRoute',
+        //   path: '/books/:id', // optional
+        //   builder: (context, data) {
+        //     return BookDetailsPage(id: data.params.getInt('id'));
+        //   },
+        // ),
+        // 使用生成的路由
+        AutoRoute(page: HomeRoute.page, initial: true),
+        AutoRoute(page: OrderKeyframeRoute.page),
       ];
 
   @override

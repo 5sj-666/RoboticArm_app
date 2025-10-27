@@ -22,6 +22,10 @@ pod install
 pod --version
 pod install flutter
 
+auto_route: 
+    https://pub.dev/packages/auto_route
+    脚本生成路由文件：dart run build_runner build
+
 
 ## Getting Started
 
