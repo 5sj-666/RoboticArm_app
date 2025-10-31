@@ -1,40 +1,6 @@
 import 'package:bloc/bloc.dart';
-
-class Joints {
-  final double joint1;
-  final double joint2;
-  final double joint3;
-  final double joint4;
-  final double joint5;
-  final double joint6;
-
-  const Joints({
-    this.joint1 = 0.0,
-    this.joint2 = 0.0,
-    this.joint3 = 0.0,
-    this.joint4 = 0.0,
-    this.joint5 = 0.0,
-    this.joint6 = 0.0,
-  });
-
-  Joints copyWith({
-    double? joint1,
-    double? joint2,
-    double? joint3,
-    double? joint4,
-    double? joint5,
-    double? joint6,
-  }) {
-    return Joints(
-      joint1: joint1 ?? this.joint1,
-      joint2: joint2 ?? this.joint2,
-      joint3: joint3 ?? this.joint3,
-      joint4: joint4 ?? this.joint4,
-      joint5: joint5 ?? this.joint5,
-      joint6: joint6 ?? this.joint6,
-    );
-  }
-}
+import 'dart:convert';
+import 'package:robotic_arm_app/types/motions.dart';
 
 // ignore: slash_for_doc_comments
 /**
@@ -47,7 +13,9 @@ class Joints {
   };
  */
 class JointsCubit extends Cubit<Joints> {
-  JointsCubit() : super(const Joints());
+  JointsCubit() : super(const Joints()) {
+    print('----JointsCubit init');
+  }
 
   void setSingleJoint(jointName, val) {
     switch (jointName) {
@@ -76,5 +44,11 @@ class JointsCubit extends Cubit<Joints> {
 
   void setJoints(Joints newJoints) {
     emit(newJoints);
+  }
+
+  String getJointsWithJSON() {
+    // final jointsMap = jsonDecode(json.encode(state.toJson())) as Map<String, dynamic>;
+    // final joints = Joints.fromJson(jointsMap);
+    return json.encode(state.toJson());
   }
 }

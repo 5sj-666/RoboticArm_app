@@ -15,38 +15,8 @@ class DevicesPage extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // threeJs 3D 画面
-          // Positioned.fill(child: threeJs.build()),
           ArmPage(),
           DeviceInformationPage(),
-          // 底部信息块
-          // Positioned(
-          //   left: 0,
-          //   // right: 0,
-          //   bottom: -400,
-          //   child: DeviceInformationPage(),
-          //   // child: Card(
-          //   //   color: Colors.white.withOpacity(0.9),
-          //   //   elevation: 8,
-          //   //   shape: RoundedRectangleBorder(
-          //   //       borderRadius: BorderRadius.circular(12)),
-          //   //   child: Padding(
-          //   //     padding: const EdgeInsets.all(16.0),
-          //   //     child: Column(
-          //   //       mainAxisSize: MainAxisSize.min,
-          //   //       children: [
-          //   //         Text(
-          //   //           '设备信息',
-          //   //           style:
-          //   //               TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          //   //         ),
-          //   //         SizedBox(height: 8),
-          //   //         Text('这里可以展示设备状态、连接信息等内容。'),
-          //   //       ],
-          //   //     ),
-          //   //   ),
-          //   // ),
-          // ),
         ],
       ),
     );

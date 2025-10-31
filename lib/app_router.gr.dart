@@ -14,7 +14,7 @@ part of 'app_router.dart';
 /// [HomeScreen]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children})
-      : super(HomeRoute.name, initialChildren: children);
+    : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -30,7 +30,7 @@ class HomeRoute extends PageRouteInfo<void> {
 /// [OrderKeyframePage]
 class OrderKeyframeRoute extends PageRouteInfo<void> {
   const OrderKeyframeRoute({List<PageRouteInfo>? children})
-      : super(OrderKeyframeRoute.name, initialChildren: children);
+    : super(OrderKeyframeRoute.name, initialChildren: children);
 
   static const String name = 'OrderKeyframeRoute';
 

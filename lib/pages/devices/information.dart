@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-// import 'arm.dart'; // 引入机械臂页面
-
+import 'dart:convert';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
-
 import 'package:robotic_arm_app/components/joint_slider.dart';
-
 import 'package:auto_route/auto_route.dart';
+import 'package:robotic_arm_app/utils/sharedPreferences.dart';
+import 'package:robotic_arm_app/types/motions.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -27,6 +28,8 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   late Timer _timer;
 
   late TextPainter motionsNamePainter;
+
+  late TextEditingController _keyframeNameCtrl;
 
   // const List<String> jointNameMap = [joint];
 
@@ -48,12 +51,13 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
 
     // ignore: no_leading_underscores_for_local_identifiers
     _scrollController = ScrollController();
+    _keyframeNameCtrl = TextEditingController();
 
     // 计算文字宽度
     motionsNamePainter = TextPainter(
       text: TextSpan(text: motionsName, style: TextStyle(color: Colors.grey)),
       maxLines: 1,
-      textDirection: TextDirection.ltr,
+      textDirection: ui.TextDirection.ltr,
     )..layout();
 
     void scrollFunc() {
@@ -98,6 +102,9 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   Widget build(BuildContext context) {
     jointsCubit = BlocProvider.of<JointsCubit>(context);
 
+    // TextInputControl control = TextInputControl();
+    // ignore: no_leading_underscores_for_local_identifiers
+
     // print('Information Page 关节1: ${jointsCubit.state.joint1}');
 
     return SlidingUpPanel(
@@ -138,8 +145,67 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                 child:
                     const Text('设计动作', style: TextStyle(color: Colors.white))),
             FilledButton(
-                onPressed: () async {
+                onPressed: () {
                   print('保存为关键帧');
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                            title: Text('ceshi'),
+                            content: TextField(
+                              controller: _keyframeNameCtrl,
+                              autofocus: true,
+                            ),
+                            actions: [
+                              FilledButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('取消')),
+                              ElevatedButton(
+                                  onPressed: () async {
+                                    // final jointsMap =
+                                    //     jointsCubit.state.toJson();
+                                    // final jointsJson = json.encode(jointsMap);
+                                    // print('--jointsJson: $jointsJson');
+                                    String saveName =
+                                        'keyframe_${_keyframeNameCtrl.text}';
+                                    // await SharedPrefsStorage.save(
+                                    //     key: key, jsonValue: jointsJson);
+                                    //将数据格式改为keyframe形式，然后存入localstorage。以便后续更改
+
+                                    Keyframe keyframe = generateKeyfreme(
+                                        jointsCubit.state, saveName);
+                                    print('keyframeName: keyframe.toJson()');
+                                    final keyframeJson =
+                                        json.encode(keyframe.toJson());
+                                    await SharedPrefsStorage.save(
+                                        key: saveName, jsonValue: keyframeJson);
+                                    await SharedPrefsStorage.readJson(
+                                        key: 'keyframe');
+                                    // jointsCubit
+                                    // for(int i = 0)
+                                    if (!mounted) return; // 已销毁则直接返回，不执行后续操作
+                                    // 创建 SnackBar
+                                    final snackBar = SnackBar(
+                                      content: const Text("保存成功"), // 提示文本
+                                      duration: const Duration(
+                                          seconds: 5), // 显示时长（默认 4 秒）
+                                      backgroundColor: Colors.green, // 背景色
+                                    );
+
+                                    // 显示 SnackBar（需通过 ScaffoldMessenger）
+
+                                    // ignore: use_build_context_synchronously
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(snackBar);
+
+                                    // ignore: use_build_context_synchronously
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('确定'))
+                            ]);
+                      });
                 },
                 style: ButtonStyle(
                     backgroundColor:
@@ -217,4 +283,24 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
       ),
     );
   }
+}
+
+/// 根据关节的位置信息生成关键帧
+/// 便利关节位置信息，
+Keyframe generateKeyfreme(Joints positions, String inputName) {
+  final positionMap = positions.toJson();
+  // final a = DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now());
+  // print('---a. time: $a');
+  final keyframe = Keyframe(
+      name: inputName,
+      createTime: DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now()),
+      children: []);
+  positionMap.forEach((key, value) {
+    // print('$key: $value _ $key');
+    // print('jointIdMap${key.toString()}_${jointIdMap[key]}');
+    final item = KeyframeItem(location: value, motorId: jointIdMap[key]);
+    keyframe.children.add(item);
+  });
+
+  return keyframe;
 }

@@ -1,5 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:robotic_arm_app/types/motions.dart';
+import 'package:robotic_arm_app/utils/sharedPreferences.dart';
+import 'package:logger/logger.dart';
+import 'dart:convert';
 
 // ignore: slash_for_doc_comments
 /**
@@ -32,11 +35,12 @@ import 'package:robotic_arm_app/types/motions.dart';
 
 class MotionsState {
   final List<Motion> motions;
-  final String currentMotion;
+  final String? currentMotion;
 
-  MotionsState({required this.motions, required this.currentMotion});
+  MotionsState({required this.motions, this.currentMotion = ""});
 
   MotionsState copyWith({List<Motion>? motions, String? currentMotion}) {
+    print('MotionsState');
     return MotionsState(
       motions: motions ?? this.motions,
       currentMotion: currentMotion ?? this.currentMotion,
@@ -45,7 +49,32 @@ class MotionsState {
 }
 
 class MotionsCubit extends Cubit<MotionsState> {
-  MotionsCubit() : super(MotionsState(motions: [], currentMotion: ''));
+  MotionsCubit() : super(MotionsState(motions: [], currentMotion: '')) {
+    print('---motionsCubit init');
+    _initMotions();
+  }
+
+  void _initMotions() async {
+    print('----initMotions----');
+    // 从sharedpreference中获取
+    Map<String, dynamic> resultList = await SharedPrefsStorage.findByKeyPrefix(
+      'motion',
+    );
+
+    List<Motion> list = [];
+
+    resultList.forEach((key, value) {
+      print('---motionCubit for: $value');
+      final jsonMap = json.decode(value);
+      list.add(Motion.fromJson(jsonMap));
+    });
+
+    emit(MotionsState(motions: list));
+  }
+
+  void update() {
+    _initMotions();
+  }
 
   void setMotions(List<Motion> motions) {
     // emit(state.copyWith(motions: motions));

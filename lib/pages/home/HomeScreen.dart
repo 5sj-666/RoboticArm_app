@@ -1,15 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-
-import '../motions/waterfall.dart';
+import 'motionsWaterfall.dart';
 import 'profile.dart';
 import 'ai_chat.dart';
-// // import 'pages/devices.dart';
 import 'devices_page.dart';
-// import 'package:robotic_arm_app/cubit/joints_cubit.dart';
-// import 'package:flutter_bloc/flutter_bloc.dart';
-// import '../../app_router.dart';
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -61,22 +55,10 @@ class MyHomePageState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         fixedColor: Colors.deepOrange,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.gesture),
-            label: '模型',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.device_hub),
-            label: '设备',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'AI',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '我的',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.gesture), label: '模型'),
+          BottomNavigationBarItem(icon: Icon(Icons.device_hub), label: '设备'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'AI'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: '我的'),
         ],
       ),
     );
