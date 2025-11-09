@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 // import 'package:robotic_arm_app/components/MotionNode.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 import 'dart:convert';
 import 'package:logger/logger.dart';
+import 'package:intl/intl.dart';
+// import 'package:robotic_arm_app/types/motions.dart';
+import 'package:robotic_arm_app/cubit/motions_cubit.dart';
+
+var logger = Logger();
 
 @RoutePage()
 class OrderKeyframePage extends StatefulWidget {
@@ -16,7 +22,7 @@ class OrderKeyframePage extends StatefulWidget {
 
 // ignore: camel_case_types
 class _orderKeyframe extends State<OrderKeyframePage> {
-  final List<KeyframeWrapper> keyframeList = [];
+  final List<KeyframeWrapper> keyframeWrapperList = [];
 
   @override
   void initState() {
@@ -32,7 +38,7 @@ class _orderKeyframe extends State<OrderKeyframePage> {
     int i = 0;
     result.forEach((key, value) {
       setState(() {
-        keyframeList.add(
+        keyframeWrapperList.add(
           KeyframeWrapper(
             order: i,
             keyframe: Keyframe.fromJson(json.decode(value)),
@@ -51,57 +57,17 @@ class _orderKeyframe extends State<OrderKeyframePage> {
   Widget build(BuildContext context) {
     Color oddItemColor = Colors.white10;
     final Color evenItemColor = Colors.blue.shade50;
+    final motionsCubit = BlocProvider.of<MotionsCubit>(context);
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // print('保存动作');
-          // print('保存动作${keyframeList.toJson()}');
-          // keyframeList.forEach((a) {
-          //   print(json.encode(a.toJson()));
-          // });
-          List<Keyframe> list = [];
-          for (int i = 0; i < keyframeList.length; i++) {
-            // print(json.encode(keyframeList[i].toJson()));
-            // list.add(keyframeList[i].keyframe.toJson());
-            list.add(keyframeList[i].keyframe);
-          }
-          // debugPrint('保存的动作: ${json.encode(list)}');
-          var logger = Logger();
-          Motion saveDate = Motion(
-            id: '5id',
-            name: '5名称',
-            description: '5描述',
-            children: list,
+          print('保存动作');
+          saveDialog(
+            context: context,
+            keyframeWrapperList: keyframeWrapperList,
+            motionsCubit: motionsCubit,
           );
-          // logger.d('设计动作： $Motion');
-          try {
-            json.encode(saveDate.toJson());
-          } catch (err) {
-            logger.w('动作设计错误$err');
-          }
-
-          await SharedPrefsStorage.save(
-            key: 'motion5',
-            jsonValue: json.encode(saveDate.toJson()),
-          );
-
-          print('保存成功');
-          final a = await SharedPrefsStorage.findByKeyPrefix('motion1');
-
-          if (!mounted) return;
-
-          // showDialog(
-          //   context: context,
-          //   builder: (BuildContext context) {
-          //     return AlertDialog(
-          //       title: Text('json数据'),
-          //       content: Text(a['motion1']),
-          //     );
-          //   },
-          // );
-
-          // logger.d("Logger is working! $a");
         },
         child: Icon(Icons.save),
         // child: Text('保存动作'),
@@ -117,9 +83,9 @@ class _orderKeyframe extends State<OrderKeyframePage> {
         child: ReorderableListView(
           // padding: const EdgeInsets.symmetric(horizontal: 40),
           children: <Widget>[
-            for (int index = 0; index < keyframeList.length; index += 1)
+            for (int index = 0; index < keyframeWrapperList.length; index += 1)
               Material(
-                key: ValueKey<int>(keyframeList[index].order ?? index),
+                key: ValueKey<int>(keyframeWrapperList[index].order ?? index),
                 color: Colors.transparent,
                 child: ListTile(
                   // tileColor: (keyframeList[index].order ?? index).isOdd
@@ -141,7 +107,7 @@ class _orderKeyframe extends State<OrderKeyframePage> {
                   ),
                   // title: Text('Item ${_items[index]}'),
                   title: MotionItemCard(
-                    item: keyframeList[index].keyframe,
+                    item: keyframeWrapperList[index].keyframe,
                     index: index,
                   ),
                 ),
@@ -161,8 +127,10 @@ class _orderKeyframe extends State<OrderKeyframePage> {
               if (oldIndex < newIndex) {
                 newIndex -= 1;
               }
-              final KeyframeWrapper item = keyframeList.removeAt(oldIndex);
-              keyframeList.insert(newIndex, item);
+              final KeyframeWrapper item = keyframeWrapperList.removeAt(
+                oldIndex,
+              );
+              keyframeWrapperList.insert(newIndex, item);
             });
           },
         ),
@@ -228,4 +196,97 @@ class KeyframeWrapper {
   KeyframeWrapper({this.order, required this.keyframe});
 
   Map<String, dynamic> toJson() => {'order': order, 'kyframe': keyframe};
+}
+
+Future<void> saveDialog({
+  required BuildContext context,
+  required List<KeyframeWrapper> keyframeWrapperList,
+  required MotionsCubit motionsCubit,
+  // required JointsCubit jointsCubit,
+}) async {
+  final _keyframeNameCtrl = TextEditingController();
+  final _keyframeDescriptCtrl = TextEditingController();
+
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('动作名称', style: TextStyle(fontSize: 18)),
+        content: SizedBox(
+          height: 200,
+          child: Column(
+            children: [
+              TextField(controller: _keyframeNameCtrl, autofocus: true),
+              TextField(
+                controller: _keyframeDescriptCtrl,
+                autofocus: true,
+                maxLines: 2,
+                maxLength: 30,
+              ),
+            ],
+          ),
+        ),
+
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              //获取用户输入的saveName
+              final saveName = _keyframeNameCtrl.text;
+              final description = _keyframeDescriptCtrl.text;
+
+              print('saveName: $saveName  description: $description');
+
+              // 构造motion类型数据
+              List<Keyframe> keyframeList = [];
+              for (int i = 0; i < keyframeWrapperList.length; i++) {
+                keyframeList.add(keyframeWrapperList[i].keyframe);
+              }
+
+              Motion saveData = Motion(
+                id: '${DateTime.now()}',
+                name: saveName,
+                createTime: DateFormat(
+                  'yyyy-MM-dd HH-mm-ss',
+                ).format(DateTime.now()),
+                description: description,
+                children: keyframeList,
+              );
+
+              late SnackBar snackBar;
+              // 存储在sharedPreferences
+              try {
+                await SharedPrefsStorage.save(
+                  key: 'motion_$saveName',
+                  jsonValue: json.encode(saveData.toJson()),
+                );
+
+                // 创建 SnackBar
+                snackBar = SnackBar(
+                  content: const Text("保存动作成功"), // 提示文本
+                  duration: const Duration(seconds: 2), // 显示时长（默认 4 秒）
+                  backgroundColor: Colors.green, // 背景色
+                );
+              } catch (err) {
+                logger.w('动作设计错误$err');
+              }
+
+              if (context.mounted) {
+                // 显示 SnackBar（需通过 ScaffoldMessenger）
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                motionsCubit.update();
+                Navigator.of(context).pop();
+              }
+            },
+            child: Text('确定'),
+          ),
+        ],
+      );
+    },
+  );
 }

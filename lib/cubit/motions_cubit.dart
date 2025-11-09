@@ -1,8 +1,11 @@
 import 'package:bloc/bloc.dart';
+import 'package:logger/logger.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'package:robotic_arm_app/utils/sharedPreferences.dart';
-import 'package:logger/logger.dart';
+// import 'package:logger/logger.dart';
 import 'dart:convert';
+
+final logger = Logger();
 
 // ignore: slash_for_doc_comments
 /**
@@ -64,15 +67,23 @@ class MotionsCubit extends Cubit<MotionsState> {
     List<Motion> list = [];
 
     resultList.forEach((key, value) {
-      print('---motionCubit for: $value');
-      final jsonMap = json.decode(value);
-      list.add(Motion.fromJson(jsonMap));
+      try {
+        // print('---motionCubit for: $value');
+        final jsonMap = json.decode(value);
+        list.add(Motion.fromJson(jsonMap));
+      } catch (error) {
+        logger.w(error);
+      }
     });
 
-    emit(MotionsState(motions: list));
+    // emit(MotionsState(motions: list));
+    emit(state.copyWith(motions: list));
+
+    print('motionscubic初始状态 ');
   }
 
   void update() {
+    print('motionscubic更新状态 ');
     _initMotions();
   }
 

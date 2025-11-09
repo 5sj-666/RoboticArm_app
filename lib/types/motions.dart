@@ -192,6 +192,8 @@ class Motion {
   String? coverImg; //封面地址
   List<Keyframe> children; // 关键帧列表
   String? createTime;
+  String? author;
+  int? faverite;
 
   Motion({
     required this.id,
@@ -201,6 +203,8 @@ class Motion {
     this.imgs,
     this.coverImg,
     required this.children,
+    this.author,
+    this.faverite,
   });
 
   Map<String, dynamic> toJson() => _$MotionToJson(this);

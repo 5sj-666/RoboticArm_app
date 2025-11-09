@@ -15,17 +15,21 @@ class SharedPrefsStorage {
     print('JSON 保存到 SharedPreferences 成功');
   }
 
-  static Future<void> save(
-      {required String key, required String jsonValue}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, jsonValue);
-    print('JSON 保存到 SharedPreferences 成功');
+  static Future<void> save({
+    required String key,
+    required String jsonValue,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, jsonValue);
+      print('JSON 保存到 SharedPreferences 成功');
+    } catch (err) {
+      print('JSON 保存到 SharedPreferences 失败');
+    }
   }
 
   // 读取 JSON 数据
-  static Future<Map<String, dynamic>?> readJson({
-    required String key,
-  }) async {
+  static Future<Map<String, dynamic>?> readJson({required String key}) async {
     final prefs = await SharedPreferences.getInstance();
     // 读取字符串
     final jsonString = prefs.getString(key);

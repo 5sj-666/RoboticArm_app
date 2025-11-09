@@ -24,12 +24,8 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
 
   String motionsName = "motions名称很长,需要滚动起来起来";
   late ScrollController _scrollController;
-
   late Timer _timer;
-
   late TextPainter motionsNamePainter;
-
-  late TextEditingController _keyframeNameCtrl;
 
   // const List<String> jointNameMap = [joint];
 
@@ -48,14 +44,15 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   @override
   void initState() {
     super.initState();
-
     // ignore: no_leading_underscores_for_local_identifiers
     _scrollController = ScrollController();
-    _keyframeNameCtrl = TextEditingController();
 
     // 计算文字宽度
     motionsNamePainter = TextPainter(
-      text: TextSpan(text: motionsName, style: TextStyle(color: Colors.grey)),
+      text: TextSpan(
+        text: motionsName,
+        style: TextStyle(color: Colors.grey),
+      ),
       maxLines: 1,
       textDirection: ui.TextDirection.ltr,
     )..layout();
@@ -120,100 +117,61 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
       // 面板内容
       panel: Padding(
         padding: EdgeInsets.only(top: 30),
-        child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-          Wrap(children: [
-            for (int i = 0; i < _jointValues.length; i++)
-              FractionallySizedBox(
-                widthFactor: 0.5,
-                child: JointSlider(
-                    title: '关节${i + 1}:',
-                    value: _jointValues[i],
-                    onValueChanged: _updateJointValue,
-                    index: i,
-                    min: i == 1 ? -130.0 : -180.0,
-                    max: i == 1 ? 130.0 : 180.0),
-              )
-          ]),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            FilledButton(
-                onPressed: () {
-                  context.router.push(NamedRoute('OrderKeyframeRoute'));
-                },
-                style: ButtonStyle(
-                    backgroundColor:
-                        WidgetStatePropertyAll<Color>(Colors.blue.shade300)),
-                child:
-                    const Text('设计动作', style: TextStyle(color: Colors.white))),
-            FilledButton(
-                onPressed: () {
-                  print('保存为关键帧');
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                            title: Text('ceshi'),
-                            content: TextField(
-                              controller: _keyframeNameCtrl,
-                              autofocus: true,
-                            ),
-                            actions: [
-                              FilledButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('取消')),
-                              ElevatedButton(
-                                  onPressed: () async {
-                                    // final jointsMap =
-                                    //     jointsCubit.state.toJson();
-                                    // final jointsJson = json.encode(jointsMap);
-                                    // print('--jointsJson: $jointsJson');
-                                    String saveName =
-                                        'keyframe_${_keyframeNameCtrl.text}';
-                                    // await SharedPrefsStorage.save(
-                                    //     key: key, jsonValue: jointsJson);
-                                    //将数据格式改为keyframe形式，然后存入localstorage。以便后续更改
-
-                                    Keyframe keyframe = generateKeyfreme(
-                                        jointsCubit.state, saveName);
-                                    print('keyframeName: keyframe.toJson()');
-                                    final keyframeJson =
-                                        json.encode(keyframe.toJson());
-                                    await SharedPrefsStorage.save(
-                                        key: saveName, jsonValue: keyframeJson);
-                                    await SharedPrefsStorage.readJson(
-                                        key: 'keyframe');
-                                    // jointsCubit
-                                    // for(int i = 0)
-                                    if (!mounted) return; // 已销毁则直接返回，不执行后续操作
-                                    // 创建 SnackBar
-                                    final snackBar = SnackBar(
-                                      content: const Text("保存成功"), // 提示文本
-                                      duration: const Duration(
-                                          seconds: 5), // 显示时长（默认 4 秒）
-                                      backgroundColor: Colors.green, // 背景色
-                                    );
-
-                                    // 显示 SnackBar（需通过 ScaffoldMessenger）
-
-                                    // ignore: use_build_context_synchronously
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(snackBar);
-
-                                    // ignore: use_build_context_synchronously
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('确定'))
-                            ]);
-                      });
-                },
-                style: ButtonStyle(
-                    backgroundColor:
-                        WidgetStatePropertyAll<Color>(Colors.blue.shade300)),
-                child: const Text('保存为关键帧',
-                    style: TextStyle(color: Colors.white))),
-          ]),
-        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Wrap(
+              children: [
+                for (int i = 0; i < _jointValues.length; i++)
+                  FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: JointSlider(
+                      title: '关节${i + 1}:',
+                      value: _jointValues[i],
+                      onValueChanged: _updateJointValue,
+                      index: i,
+                      min: i == 1 ? -130.0 : -180.0,
+                      max: i == 1 ? 130.0 : 180.0,
+                    ),
+                  ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                FilledButton(
+                  onPressed: () {
+                    context.router.push(NamedRoute('OrderKeyframeRoute'));
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll<Color>(
+                      Colors.blue.shade300,
+                    ),
+                  ),
+                  child: const Text(
+                    '设计动作',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    print('保存为关键帧');
+                    saveDialog(context: context, jointsCubit: jointsCubit);
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll<Color>(
+                      Colors.blue.shade300,
+                    ),
+                  ),
+                  child: const Text(
+                    '保存为关键帧',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       // 面板顶部的滑块
       collapsed: Container(
@@ -237,16 +195,10 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "动作",
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  Text("动作", style: TextStyle(color: Colors.grey)),
                   SizedBox(height: 8),
                   motionsNamePainter.width < 120
-                      ? Text(
-                          motionsName,
-                          textAlign: TextAlign.center,
-                        )
+                      ? Text(motionsName, textAlign: TextAlign.center)
                       : SizedBox(
                           width: 120, // 设置一个固定宽度
                           child: SingleChildScrollView(
@@ -276,7 +228,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                 onPressed: () {
                   print('stop motions');
                 },
-              )
+              ),
             ],
           ),
         ),
@@ -285,19 +237,73 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   }
 }
 
+Future<void> saveDialog({
+  required BuildContext context,
+  required JointsCubit jointsCubit,
+}) async {
+  final _keyframeNameCtrl = TextEditingController();
+
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('关键帧名称', style: TextStyle(fontSize: 16)),
+        content: TextField(controller: _keyframeNameCtrl, autofocus: true),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final saveName = _keyframeNameCtrl.text;
+              Keyframe keyframe = generateKeyfreme(jointsCubit.state, saveName);
+              final keyframeJson = json.encode(keyframe.toJson());
+              print(
+                '保存关键帧keyframeName: $saveName,  keyframe.toJson: $keyframeJson',
+              );
+
+              await SharedPrefsStorage.save(
+                key: 'keyframe_$saveName',
+                jsonValue: keyframeJson,
+              );
+
+              // 创建 SnackBar
+              final snackBar = SnackBar(
+                content: const Text("保存成功"), // 提示文本
+                duration: const Duration(seconds: 2), // 显示时长（默认 4 秒）
+                backgroundColor: Colors.green, // 背景色
+              );
+
+              // 显示 SnackBar（需通过 ScaffoldMessenger）
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: Text('确定'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 /// 根据关节的位置信息生成关键帧
 /// 便利关节位置信息，
 Keyframe generateKeyfreme(Joints positions, String inputName) {
   final positionMap = positions.toJson();
-  // final a = DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now());
-  // print('---a. time: $a');
+
   final keyframe = Keyframe(
-      name: inputName,
-      createTime: DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now()),
-      children: []);
+    name: inputName,
+    createTime: DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now()),
+    children: [],
+  );
   positionMap.forEach((key, value) {
-    // print('$key: $value _ $key');
-    // print('jointIdMap${key.toString()}_${jointIdMap[key]}');
     final item = KeyframeItem(location: value, motorId: jointIdMap[key]);
     keyframe.children.add(item);
   });

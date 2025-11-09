@@ -32,6 +32,8 @@ Motion _$MotionFromJson(Map<String, dynamic> json) => Motion(
   children: (json['children'] as List<dynamic>)
       .map((e) => Keyframe.fromJson(e as Map<String, dynamic>))
       .toList(),
+  author: json['author'] as String?,
+  faverite: (json['faverite'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
@@ -42,4 +44,6 @@ Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
   'coverImg': instance.coverImg,
   'children': instance.children,
   'createTime': instance.createTime,
+  'author': instance.author,
+  'faverite': instance.faverite,
 };

@@ -1,6 +1,7 @@
 analyzer:
   errors:
     file_names: ignore
+    no_leading_underscores_for_local_identifiers: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

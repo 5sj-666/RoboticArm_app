@@ -31,6 +31,8 @@ dependencies:
   logger: ^2.6.2
   json_serializable: ^6.11.1
   json_annotation: ^4.9.0
+  carousel_slider: ^5.1.1
+  flutter_svg: ^2.2.2
 
 dev_dependencies:
   flutter_test:
