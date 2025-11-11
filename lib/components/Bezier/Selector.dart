@@ -63,6 +63,13 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
     }
   }
 
+  @override
+  void didUpdateWidget(covariant CubicBezierSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    print('didUpdateWidget');
+    initCP(widget.initCubicBezier!);
+  }
+
   // 计算点位置（仅更新变量，不触发setState）
   void _calcPoints(Size size) {
     start = Offset(size.width * 0.1, size.height * 0.9); // 左侧12.5%，底部87.5%
@@ -149,8 +156,6 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
 
   @override
   Widget build(BuildContext context) {
-    // initCP('.2,.8,.8,.2');
-    callback();
     return Column(
       children: [
         // 用LayoutBuilder获取父容器约束，动态计算实际尺寸
@@ -230,27 +235,6 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
             );
           },
         ),
-
-        // // 显示当前曲线参数（基于相对比例，与尺寸无关）
-        // Container(
-        //   width: double.infinity,
-        //   padding: const EdgeInsets.all(16),
-        //   child: Column(
-        //     crossAxisAlignment: CrossAxisAlignment.start,
-        //     children: [
-        //       const Text(
-        //         "曲线参数（相对比例）：",
-        //         style: TextStyle(fontWeight: FontWeight.bold),
-        //       ),
-        //       Text(
-        //         "控制点1: (${(control1.dx / _actualSize.width).toStringAsFixed(3)}, ${(control1.dy / _actualSize.height).toStringAsFixed(3)})",
-        //       ),
-        //       Text(
-        //         "控制点2: (${(control2.dx / _actualSize.width).toStringAsFixed(3)}, ${(control2.dy / _actualSize.height).toStringAsFixed(3)})",
-        //       ),
-        //     ],
-        //   ),
-        // ),
       ],
     );
   }
@@ -282,7 +266,7 @@ class CubicBezierPainter extends CustomPainter {
       ..color = Colors.blue
       ..strokeWidth =
           size.shortestSide *
-          0.008 // 动态线宽
+          0.02 // 动态线宽
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
