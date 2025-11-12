@@ -14,7 +14,7 @@ import 'package:robotic_arm_app/types/motions.dart';
  */
 class JointsCubit extends Cubit<Joints> {
   JointsCubit() : super(const Joints()) {
-    print('----JointsCubit init');
+    // print('----JointsCubit init');
   }
 
   void setSingleJoint(jointName, val) {

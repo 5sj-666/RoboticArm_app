@@ -9,6 +9,8 @@ import 'package:logger/logger.dart';
 import 'package:intl/intl.dart';
 // import 'package:robotic_arm_app/types/motions.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
+import 'package:robotic_arm_app/components/Bezier/Dialog.dart';
+import 'package:robotic_arm_app/components/Bezier/Svg.dart';
 
 var logger = Logger();
 
@@ -109,6 +111,23 @@ class _orderKeyframe extends State<OrderKeyframePage> {
                   title: MotionItemCard(
                     item: keyframeWrapperList[index].keyframe,
                     index: index,
+                    changeTimingFunc: (str) {
+                      setState(() {
+                        if (str != '') {
+                          keyframeWrapperList[index].keyframe.timingFunction =
+                              str;
+
+                          var keyframe = keyframeWrapperList[index].keyframe;
+                          print('---keyframe name: ${keyframe.name}');
+                          // 保存至sharedPreferences
+                          final keyframeJson = json.encode(keyframe.toJson());
+                          SharedPrefsStorage.save(
+                            key: 'keyframe_${keyframe.name}',
+                            jsonValue: keyframeJson,
+                          );
+                        }
+                      });
+                    },
                   ),
                 ),
               ),
@@ -142,14 +161,22 @@ class _orderKeyframe extends State<OrderKeyframePage> {
 class MotionItemCard extends StatelessWidget {
   final Keyframe? item;
   final int index;
+  final ValueChanged<String>? changeTimingFunc;
 
-  MotionItemCard({super.key, this.item, required this.index});
+  MotionItemCard({
+    super.key,
+    this.item,
+    required this.index,
+    this.changeTimingFunc,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // print('design_motion build: ${item?.timingFunction}');
     return Container(
       // width: 100,
       height: 80,
+      padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(width: 1, color: Colors.green.shade500),
@@ -159,7 +186,6 @@ class MotionItemCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          SizedBox(width: 10),
           SizedBox(width: 20, child: Text('${index + 1}')),
           SizedBox(
             width: 100,
@@ -179,9 +205,39 @@ class MotionItemCard extends StatelessWidget {
               //   border: Border.all(
               //       width: 1, color: Colors.black54),
               // ),
-              child: Text((item?.name ?? '').replaceFirst('keyframe_', '')),
+              // child: Text((item?.name ?? '').replaceFirst('keyframe_', '')), item?.timingFunction ?? 'ease-in'
+              child: Text(
+                '${(item?.name ?? '').replaceFirst('keyframe_', '')} ${item?.timingFunction ?? 'ease-in'}',
+              ),
             ),
           ),
+          InkWell(
+            onTap: () async {
+              final dynamic customTimingFunc = await showDialog(
+                context: context,
+                builder: (context) => SetBezier(
+                  initTimingFunc: item?.timingFunction ?? 'ease-in',
+                ),
+              );
+              // final String a = await dialogSetBezier(context: context);
+              // print('获取到的缓动函数 : $customTimingFunc');
+              if (customTimingFunc != null) {
+                item?.timingFunction = customTimingFunc;
+
+                try {
+                  changeTimingFunc!(customTimingFunc);
+                } catch (error) {
+                  print(error);
+                }
+              }
+            },
+            child: SvgCubicBezier(
+              timingFunc: item?.timingFunction ?? 'ease-in',
+            ),
+
+            // child: Text('${item?.timingFunction}'),
+          ),
+          // Text(item?.timingFunction ?? 'ease-in'),
         ],
       ),
     );

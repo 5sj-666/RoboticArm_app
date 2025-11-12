@@ -43,7 +43,7 @@ class MotionsState {
   MotionsState({required this.motions, this.currentMotion = ""});
 
   MotionsState copyWith({List<Motion>? motions, String? currentMotion}) {
-    print('MotionsState');
+    // print('MotionsState');
     return MotionsState(
       motions: motions ?? this.motions,
       currentMotion: currentMotion ?? this.currentMotion,
@@ -53,12 +53,12 @@ class MotionsState {
 
 class MotionsCubit extends Cubit<MotionsState> {
   MotionsCubit() : super(MotionsState(motions: [], currentMotion: '')) {
-    print('---motionsCubit init');
+    // print('---motionsCubit init');
     _initMotions();
   }
 
   void _initMotions() async {
-    print('----initMotions----');
+    // print('----initMotions----');
     // 从sharedpreference中获取
     Map<String, dynamic> resultList = await SharedPrefsStorage.findByKeyPrefix(
       'motion',
@@ -79,7 +79,7 @@ class MotionsCubit extends Cubit<MotionsState> {
     // emit(MotionsState(motions: list));
     emit(state.copyWith(motions: list));
 
-    print('motionscubic初始状态 ');
+    // print('motionscubic初始状态 ');
   }
 
   void update() {

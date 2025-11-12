@@ -9,11 +9,11 @@ class WaterfallPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final motionList = BlocProvider.of<MotionsCubit>(context);
-    print('----waterfall${motionList.state.motions}');
+    // print('----waterfall${motionList.state.motions}');
     final list = motionList.state.motions;
-    print('----waterfall$list');
+    // print('----waterfall$list');
     for (int i = 0; i < list.length; i++) {
-      print('瀑布流: ${list[i].name}');
+      // print('瀑布流: ${list[i].name}');
     }
 
     // final _searchController = TextEditingController();
@@ -40,7 +40,7 @@ class WaterfallPage extends StatelessWidget {
       ),
       body: BlocBuilder<MotionsCubit, MotionsState>(
         builder: (context, state) {
-          logger.w('更新motiosnCubit状态监听');
+          // logger.w('更新motiosnCubit状态监听');
           final screenWidth = MediaQuery.of(context).size.width;
           return ListView(
             // 关键：让ListView高度适应Wrap内容（否则会无限延伸）

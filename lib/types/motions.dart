@@ -137,6 +137,7 @@ class Keyframe {
   List<KeyframeItem> children; // 关键帧列表
   int time; // 毫秒
   String? createTime; // 创建时间 用intl格式化为字符串类型
+  String? timingFunction = 'linear';
 
   Keyframe({
     this.name,
@@ -144,6 +145,7 @@ class Keyframe {
     required this.children,
     this.time = 0,
     this.createTime,
+    this.timingFunction,
   });
 
   factory Keyframe.fromJson(Map<String, dynamic> json) =>

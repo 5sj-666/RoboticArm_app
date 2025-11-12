@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:robotic_arm_app/components/Bezier/Selector.dart';
-// import 'package:robotic_arm_app/components/Bezier/Svg.dart';
-import 'package:robotic_arm_app/components/Bezier/Dialog.dart';
 
 @RoutePage()
 class DetailPage extends StatelessWidget {
@@ -132,8 +129,6 @@ class DetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // SvgCubicBezier(timingFunc: '.2,.1,.8,.8'),
-                  // SvgCubicBezier(timingFunc: 'ease-in-out'),
                 ],
               ),
 
@@ -158,31 +153,11 @@ class DetailPage extends StatelessWidget {
                         SizedBox(
                           width: screenWidth / 2,
                           child: FilledButton(
-                            onPressed: () {
-                              dialogSetBezier(context: context);
-                            },
+                            onPressed: () {},
                             child: Text('应用'),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left: 00,
-                top: 10,
-                child: Transform.scale(
-                  scale: 1,
-                  child: Container(
-                    width: 300,
-                    height: 300 + 100,
-                    decoration: BoxDecoration(color: Colors.yellow),
-                    child: // 2. 固定宽高
-                    CubicBezierSelector(
-                      width: 300,
-                      height: 300,
                     ),
                   ),
                 ),

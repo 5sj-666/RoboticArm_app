@@ -82,7 +82,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
       // }
     }
 
-    print("text 长度${motionsNamePainter.width}");
+    // print("text 长度${motionsNamePainter.width}");
     if (motionsNamePainter.width >= 120) {
       scrollFunc();
     }
@@ -259,7 +259,7 @@ Future<void> saveDialog({
           ElevatedButton(
             onPressed: () async {
               final saveName = _keyframeNameCtrl.text;
-              Keyframe keyframe = generateKeyfreme(jointsCubit.state, saveName);
+              Keyframe keyframe = generateKeyframe(jointsCubit.state, saveName);
               final keyframeJson = json.encode(keyframe.toJson());
               print(
                 '保存关键帧keyframeName: $saveName,  keyframe.toJson: $keyframeJson',
@@ -295,7 +295,7 @@ Future<void> saveDialog({
 
 /// 根据关节的位置信息生成关键帧
 /// 便利关节位置信息，
-Keyframe generateKeyfreme(Joints positions, String inputName) {
+Keyframe generateKeyframe(Joints positions, String inputName) {
   final positionMap = positions.toJson();
 
   final keyframe = Keyframe(

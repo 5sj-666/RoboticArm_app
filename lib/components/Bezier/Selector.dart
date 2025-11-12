@@ -67,7 +67,9 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
   void didUpdateWidget(covariant CubicBezierSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
     print('didUpdateWidget');
-    initCP(widget.initCubicBezier!);
+    if (oldWidget.initCubicBezier != widget.initCubicBezier) {
+      initCP(widget.initCubicBezier!);
+    }
   }
 
   // 计算点位置（仅更新变量，不触发setState）
@@ -108,24 +110,22 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
   void callback() {
     if (widget.onPointsChanged != null) {
       print(
-        'cp1: ${control1.dx}, ${control1.dy}, start: ${start.dx}, ${start.dy}, end: ${end.dx}, ${end.dy}',
+        'cp1: ${control1.dx}, ${control1.dy}, cp2: ${control2.dx}, ${control2.dy}, start: ${start.dx}, ${start.dy}, end: ${end.dx}, ${end.dy}',
       );
       // 计算得出三次贝塞尔曲线的控制点的x值， 在此需要减去画布的边距
       String getRealX(x) {
-        return ((x - _actualSize.width * 0.1) / _actualSize.width)
-            .toStringAsFixed(3);
+        return ((x - start.dx) / (end.dx - start.dx)).toStringAsFixed(3);
       }
 
       // 计算得出三次贝塞尔曲线的控制点的y值， 在此需要减去画布的边距，由于左下角是坐标（0，0），需要需要1-y
       String getRealY(y) {
-        return (1.0 - (y - _actualSize.height * 0.1) / _actualSize.height)
-            .toStringAsFixed(3);
+        return (1.0 - (y - start.dx) / (start.dy - end.dy)).toStringAsFixed(3);
       }
 
       String cp1Dx = getRealX(control1.dx);
       String cp1Dy = getRealY(control1.dy);
-      String cp2Dx = getRealX(control1.dx);
-      String cp2Dy = getRealY(control1.dy);
+      String cp2Dx = getRealX(control2.dx);
+      String cp2Dy = getRealY(control2.dy);
 
       String str = '$cp1Dx, $cp1Dy, $cp2Dx, $cp2Dy';
 

@@ -114,8 +114,12 @@ class FlutterGameState extends State<ArmPage> {
     //         listenableKey: threeJs.globalKey)
     //     : null;
 
-    threeJs.camera =
-        three.PerspectiveCamera(45, threeJs.width / threeJs.height, 1, 2200);
+    threeJs.camera = three.PerspectiveCamera(
+      45,
+      threeJs.width / threeJs.height,
+      1,
+      2200,
+    );
     threeJs.camera.position.setValues(10, 8, 8);
     threeJs.scene = three.Scene();
     // init();
@@ -138,11 +142,13 @@ class FlutterGameState extends State<ArmPage> {
 
     threeJs.camera.lookAt(threeJs.scene.position);
 
-    final orbitControle =
-        three.OrbitControls(threeJs.camera, threeJs.globalKey);
+    final orbitControle = three.OrbitControls(
+      threeJs.camera,
+      threeJs.globalKey,
+    );
     orbitControle.update();
 
-    addGltfAsset('cybergearmotor.stp.glb', 'cyber_gear');
+    // addGltfAsset('cybergearmotor.stp.glb', 'cyber_gear');
 
     // final zero = await addGltfAsset('zero.glb', 'zero');
     await addGltfAsset('zero.glb', 'zero');
@@ -322,8 +328,11 @@ class FlutterGameState extends State<ArmPage> {
       gltf.scene.translateX(-1.25);
       gltf.scene.translateY(-0.35);
     } else if (type == 'five') {
-      gltf.scene.rotation
-          .set(math.pi / 180 * 0.0, math.pi / 180 * 270, math.pi / 180 * 90);
+      gltf.scene.rotation.set(
+        math.pi / 180 * 0.0,
+        math.pi / 180 * 270,
+        math.pi / 180 * 90,
+      );
       // let oneDegree = math.pi / 180;
       // gltf.scene.rotation(oneDegree * 0, oneDegree * 90, oneDegree * 270);
     }
