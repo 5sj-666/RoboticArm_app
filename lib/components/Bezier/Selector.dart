@@ -14,8 +14,16 @@ class CubicBezierSelector extends StatefulWidget {
   // 新增：实时回调（外部传入，组件内部参数变化时触发）
   final ValueChanged<String>? onPointsChanged;
   final String? initCubicBezier;
+  final Color bg;
+  final Color strokeColor;
+  final Color startColor;
+  final Color endColor;
+  final Color cp1Color;
+  final Color cp2Color;
+  final Color helpColor;
+  final Color bgGridColor;
 
-  const CubicBezierSelector({
+  CubicBezierSelector({
     super.key,
     this.width,
     this.height,
@@ -25,6 +33,14 @@ class CubicBezierSelector extends StatefulWidget {
     this.maxHeight,
     this.onPointsChanged,
     this.initCubicBezier,
+    this.bg = Colors.white,
+    this.strokeColor = Colors.blue,
+    this.startColor = Colors.blue,
+    this.endColor = Colors.blue,
+    this.cp1Color = Colors.lightGreen,
+    this.cp2Color = Colors.lightGreen,
+    this.helpColor = const Color.fromARGB(255, 220, 225, 228),
+    this.bgGridColor = const Color.fromARGB(255, 236, 240, 242),
   });
 
   @override
@@ -183,7 +199,7 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
             return Container(
               width: calculatedSize.width,
               height: calculatedSize.height,
-              decoration: BoxDecoration(color: Colors.cyan),
+              decoration: BoxDecoration(color: widget.bg),
               child: GestureDetector(
                 // 开始拖拽时判断是否命中控制点
                 onPanStart: (details) {
@@ -218,14 +234,21 @@ class _CubicBezierSelectorState extends State<CubicBezierSelector> {
 
                   callback();
                 },
-                child: Container(
-                  decoration: BoxDecoration(border: Border.all()),
+                child: SizedBox(
+                  // decoration: BoxDecoration(border: Border.all()),
                   child: CustomPaint(
                     painter: CubicBezierPainter(
                       start: start,
                       control1: control1,
                       control2: control2,
                       end: end,
+                      strokeColor: widget.strokeColor,
+                      startColor: widget.startColor,
+                      endColor: widget.endColor,
+                      cp1Color: widget.cp1Color,
+                      cp2Color: widget.cp2Color,
+                      helpColor: widget.helpColor,
+                      bgGridColor: widget.bgGridColor,
                       pointRadius: _pointRadius,
                     ),
                     size: calculatedSize,
@@ -247,6 +270,13 @@ class CubicBezierPainter extends CustomPainter {
   final Offset control2;
   final Offset end;
   final double pointRadius; // 控制点半径（动态传入）
+  final Color strokeColor;
+  final Color startColor;
+  final Color endColor;
+  final Color cp1Color;
+  final Color cp2Color;
+  final Color helpColor;
+  final Color bgGridColor;
 
   CubicBezierPainter({
     required this.start,
@@ -254,6 +284,13 @@ class CubicBezierPainter extends CustomPainter {
     required this.control2,
     required this.end,
     required this.pointRadius,
+    required this.strokeColor,
+    required this.startColor,
+    required this.endColor,
+    required this.cp1Color,
+    required this.cp2Color,
+    required this.helpColor,
+    required this.bgGridColor,
   });
 
   @override
@@ -263,7 +300,7 @@ class CubicBezierPainter extends CustomPainter {
 
     // 2. 绘制三次贝塞尔曲线
     final curvePaint = Paint()
-      ..color = Colors.blue
+      ..color = strokeColor
       ..strokeWidth =
           size.shortestSide *
           0.02 // 动态线宽
@@ -284,20 +321,21 @@ class CubicBezierPainter extends CustomPainter {
 
     // 3. 绘制辅助线（连接起点-控制点1、控制点2-终点）
     final helperPaint = Paint()
-      ..color = Colors.grey[400]!
+      // ..color = Colors.grey[400]!
+      ..color = helpColor
       ..strokeWidth =
           size.shortestSide *
-          0.004 // 动态辅助线宽
+          0.005 // 动态辅助线宽
       ..style = PaintingStyle.stroke;
 
     canvas.drawLine(start, control1, helperPaint);
     canvas.drawLine(control2, end, helperPaint);
 
     // 4. 绘制控制点和起点/终点（控制点在辅助线上方，避免遮挡）
-    _drawControlPoint(canvas, start, Colors.blue);
-    _drawControlPoint(canvas, end, Colors.blue);
-    _drawControlPoint(canvas, control1, Colors.red);
-    _drawControlPoint(canvas, control2, Colors.red);
+    _drawControlPoint(canvas, start, startColor);
+    _drawControlPoint(canvas, end, endColor);
+    _drawControlPoint(canvas, control1, cp1Color);
+    _drawControlPoint(canvas, control2, cp2Color);
   }
 
   // 绘制单个控制点（圆形，适配动态半径）
@@ -320,7 +358,8 @@ class CubicBezierPainter extends CustomPainter {
   // 绘制网格背景（适配动态尺寸）
   void _drawGrid(canvas, Size size) {
     final gridPaint = Paint()
-      ..color = Colors.grey[200]!
+      // ..color = Colors.grey[200]!
+      ..color = bgGridColor
       ..strokeWidth = 1;
 
     // 计算网格间距（适配不同尺寸）

@@ -4,15 +4,22 @@ import 'package:flutter_svg/flutter_svg.dart';
 class SvgCubicBezier extends StatelessWidget {
   final String timingFunc;
   final double? size;
+  final Color color;
+  final Color bg;
 
-  SvgCubicBezier({super.key, required this.timingFunc, this.size = 20}) {
+  SvgCubicBezier({
+    super.key,
+    required this.timingFunc,
+    this.size = 20,
+    this.color = Colors.black,
+    this.bg = Colors.white,
+  }) {
+    // print(
+    //   '--bezier color:  ${color.r * 255.toInt()}, ${color.g * 255.toInt()},${color.b * 255.toInt()}',
+    // );
     // print('svg construc this.timingFunc$timingFunc');
   }
 
-  // {"name": "线性", "value": "0,0,1,1"},
-  // {"name": "缓入", "value": "0.42,0,1,1"},
-  // {"name": "缓出", "value": "0,0,0.58,1"},
-  // {"name": "缓入缓出", "value": "0.42,0,0.58,1"},
   final Map<String, String> preset = {
     "linear": "0,0,1,1",
     "ease-in": "0.42,0,1,1",
@@ -39,7 +46,8 @@ class SvgCubicBezier extends StatelessWidget {
       <svg width="100" height="100" viewBox="0 0 100 100">
       <path
         d="M 0 100 C $ctrolPointString,100 0"
-        stroke="black"
+        stroke-width="5"
+         stroke="rgb(${(color.r * 255).toInt()}, ${(color.g * 255).toInt()},${(color.b * 255).toInt()})"
         fill="transparent"
       />
     </svg>''';
@@ -48,15 +56,12 @@ class SvgCubicBezier extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String svgStr = timgFunc2Svg(timingFunc);
-
-    // print('svg: build: $timingFunc');
-
     return Container(
       padding: EdgeInsets.all(10),
       // color: Color.fromARGB(255, 232, 147, 51),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 232, 147, 51),
-        border: BoxBorder.all(),
+        color: bg,
+        border: BoxBorder.all(width: 0.5),
         borderRadius: BorderRadius.all(Radius.circular(10)),
       ),
       child: SvgPicture.string(

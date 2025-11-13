@@ -29,12 +29,12 @@ class _orderKeyframe extends State<OrderKeyframePage> {
   @override
   void initState() {
     super.initState();
-    print('designMotion initState');
+    // print('designMotion initState');
     initKeyframeList();
   }
 
   void initKeyframeList() async {
-    print('---initKeyframeList');
+    // print('---initKeyframeList');
     final result = await SharedPrefsStorage.findByKeyPrefix('keyframe');
 
     int i = 0;
@@ -52,7 +52,7 @@ class _orderKeyframe extends State<OrderKeyframePage> {
 
     // SharedPrefsStorage.readJson
 
-    print('---initKeyframeList end');
+    // print('---initKeyframeList end');
   }
 
   @override
@@ -128,6 +128,12 @@ class _orderKeyframe extends State<OrderKeyframePage> {
                         }
                       });
                     },
+                    removeTemporary: (index) {
+                      print('removeTemporary$index');
+                      setState(() {
+                        keyframeWrapperList.removeAt(index);
+                      });
+                    },
                   ),
                 ),
               ),
@@ -162,12 +168,14 @@ class MotionItemCard extends StatelessWidget {
   final Keyframe? item;
   final int index;
   final ValueChanged<String>? changeTimingFunc;
+  final ValueChanged<int>? removeTemporary;
 
   MotionItemCard({
     super.key,
     this.item,
     required this.index,
     this.changeTimingFunc,
+    this.removeTemporary,
   });
 
   @override
@@ -175,69 +183,95 @@ class MotionItemCard extends StatelessWidget {
     // print('design_motion build: ${item?.timingFunction}');
     return Container(
       // width: 100,
-      height: 80,
-      padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
+      height: 130,
+      padding: EdgeInsets.fromLTRB(8, 8, 8, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(width: 1, color: Colors.green.shade500),
         borderRadius: BorderRadius.circular(8),
       ),
       // child: Text('ceshi ${keyframeList[index].order}')),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Column(
         children: [
-          SizedBox(width: 20, child: Text('${index + 1}')),
-          SizedBox(
-            width: 100,
-            child: TextField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '时间',
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              margin: EdgeInsets.only(left: 10),
-              // height: double.infinity,
-              // decoration: BoxDecoration(
-              //   border: Border.all(
-              //       width: 1, color: Colors.black54),
-              // ),
-              // child: Text((item?.name ?? '').replaceFirst('keyframe_', '')), item?.timingFunction ?? 'ease-in'
-              child: Text(
-                '${(item?.name ?? '').replaceFirst('keyframe_', '')} ${item?.timingFunction ?? 'ease-in'}',
-              ),
-            ),
-          ),
-          InkWell(
-            onTap: () async {
-              final dynamic customTimingFunc = await showDialog(
-                context: context,
-                builder: (context) => SetBezier(
-                  initTimingFunc: item?.timingFunction ?? 'ease-in',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              SizedBox(width: 20, child: Text('${index + 1}')),
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: '时间',
+                  ),
                 ),
-              );
-              // final String a = await dialogSetBezier(context: context);
-              // print('获取到的缓动函数 : $customTimingFunc');
-              if (customTimingFunc != null) {
-                item?.timingFunction = customTimingFunc;
+              ),
+              Expanded(
+                flex: 1,
+                child: Container(
+                  margin: EdgeInsets.only(left: 10),
+                  // height: double.infinity,
+                  // decoration: BoxDecoration(
+                  //   border: Border.all(
+                  //       width: 1, color: Colors.black54),
+                  // ),
+                  // child: Text((item?.name ?? '').replaceFirst('keyframe_', '')), item?.timingFunction ?? 'ease-in'
+                  child: Text((item?.name ?? '').replaceFirst('keyframe_', '')),
+                ),
+              ),
+              InkWell(
+                onTap: () async {
+                  final dynamic customTimingFunc = await showDialog(
+                    context: context,
+                    builder: (context) => SetBezier(
+                      initTimingFunc: item?.timingFunction ?? 'ease-in',
+                    ),
+                  );
+                  // final String a = await dialogSetBezier(context: context);
+                  // print('获取到的缓动函数 : $customTimingFunc');
+                  if (customTimingFunc != null) {
+                    item?.timingFunction = customTimingFunc;
 
-                try {
-                  changeTimingFunc!(customTimingFunc);
-                } catch (error) {
-                  print(error);
-                }
-              }
-            },
-            child: SvgCubicBezier(
-              timingFunc: item?.timingFunction ?? 'ease-in',
-            ),
+                    try {
+                      changeTimingFunc!(customTimingFunc);
+                    } catch (error) {
+                      print(error);
+                    }
+                  }
+                },
+                child: SvgCubicBezier(
+                  timingFunc: item?.timingFunction ?? 'ease-in',
+                  bg: Colors.white70,
+                ),
 
-            // child: Text('${item?.timingFunction}'),
+                // child: Text('${item?.timingFunction}'),
+              ),
+              // Text(item?.timingFunction ?? 'ease-in'),
+            ],
           ),
-          // Text(item?.timingFunction ?? 'ease-in'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Text('缓动函数${item?.timingFunction}'),
+              SizedBox(width: 1),
+              SizedBox(
+                // width: 30,
+                // height: 20,
+                child: FilledButton(
+                  onPressed: () {
+                    if (removeTemporary != null) {
+                      removeTemporary!(index);
+                    }
+                  },
+                  style: ButtonStyle(
+                    padding: WidgetStateProperty.all(EdgeInsetsGeometry.zero),
+                    minimumSize: WidgetStateProperty.all<Size>(Size(40, 25)),
+                  ),
+                  child: Icon(Icons.delete),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

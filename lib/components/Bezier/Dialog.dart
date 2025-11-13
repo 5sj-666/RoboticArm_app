@@ -17,12 +17,15 @@ class _SetBezierState extends State<SetBezier> {
   // fianl
   String selectedTimingFunc = 'linear';
   String initTimeFunc = 'linear';
-  final List<String> predefineds = [
-    'linear',
-    'ease-in',
-    'ease-out',
-    'ease-in-out',
+
+  final List<String> preset = ['linear', 'ease-in', 'ease-out', 'ease-in-out'];
+  final List<List<Color>> presetColor = [
+    [Colors.yellow, Colors.blue],
+    [Colors.green, Colors.purple],
+    [Colors.cyan, Colors.amber],
+    [Colors.red, Colors.grey],
   ];
+
   final List<String> predefinedsValue = [
     '0.2,0.2,.5,.5',
     '0.42,0,1,1',
@@ -55,13 +58,17 @@ class _SetBezierState extends State<SetBezier> {
       title: Text('设置运动函数', style: TextStyle(fontSize: 18)),
       content: SizedBox(
         width: 400,
-        height: 350,
+        height: 355,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            SizedBox(
+            Container(
               width: 250,
               height: 250,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              clipBehavior: Clip.hardEdge,
               child: CubicBezierSelector(
                 width: 250,
                 height: 250,
@@ -74,19 +81,25 @@ class _SetBezierState extends State<SetBezier> {
                 },
               ),
             ),
+            SizedBox(height: 8),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                for (int i = 0; i < predefineds.length; i++)
+                for (int i = 0; i < preset.length; i++)
                   InkWell(
                     onTap: () {
                       setState(() {
                         initTimeFunc = predefinedsValue[i];
                         selectedTimingFunc = predefinedsValue[i];
                       });
-                      print('inkwell: ${predefineds[i]}');
+                      // print('inkwell: ${preset[i]}');
                     },
-                    child: SvgCubicBezier(timingFunc: predefineds[i], size: 40),
+                    child: SvgCubicBezier(
+                      timingFunc: preset[i],
+                      size: 35,
+                      bg: presetColor[i][1],
+                      color: presetColor[i][0],
+                    ),
                   ),
               ],
             ),
@@ -94,7 +107,7 @@ class _SetBezierState extends State<SetBezier> {
             SizedBox(
               width: 250,
               height: 30,
-              child: Text('过渡函数: linear$selectedTimingFunc'),
+              child: Text('过渡函数: $selectedTimingFunc'),
             ),
           ],
         ),
