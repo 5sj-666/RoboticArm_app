@@ -1,12 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:robotic_arm_app/cubit/motions_cubit.dart';
+import 'package:robotic_arm_app/app_router.dart';
+import 'package:robotic_arm_app/pages/home/home_cubit.dart';
 
 @RoutePage()
 class DetailPage extends StatelessWidget {
+  const DetailPage({required this.id});
+
+  final String id;
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final motionsCubit = BlocProvider.of<MotionsCubit>(context);
+    final homeCubit = BlocProvider.of<HomeCubit>(context);
+
+    print('--detail: id:  $id');
+    final motion = motionsCubit.findById(id);
+    print('--detail: motion.id:  ${motion.id}');
+    // final motion = motionList
+    // print(data.params.getString('id'));
     // final screenHeight = MediaQuery.of(context).size.height;
 
     // Future.delayed({duration: Duration(seconds: 3)});
@@ -66,14 +82,14 @@ class DetailPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '动作1',
+                            motion.name,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           Text(
-                            '描述文字',
+                            motion.description,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
@@ -153,7 +169,16 @@ class DetailPage extends StatelessWidget {
                         SizedBox(
                           width: screenWidth / 2,
                           child: FilledButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              bool result = motionsCubit.setCurMotion(motion);
+                              if (result) {
+                                homeCubit.setIndex(1);
+                                context.router.popUntil(
+                                  (route) =>
+                                      route.settings.name == HomeRoute.name,
+                                );
+                              }
+                            },
                             child: Text('应用'),
                           ),
                         ),

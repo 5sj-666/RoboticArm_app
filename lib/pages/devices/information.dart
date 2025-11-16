@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'dart:convert';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
+import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'package:robotic_arm_app/components/joint_slider.dart';
@@ -21,6 +22,7 @@ class DeviceInformationPage extends StatefulWidget {
 // ignore: camel_case_types
 class _deviceInformationPage extends State<DeviceInformationPage> {
   late JointsCubit jointsCubit;
+  late MotionsCubit motionsCubit;
 
   String motionsName = "motions名称很长,需要滚动起来起来";
   late ScrollController _scrollController;
@@ -47,10 +49,17 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     // ignore: no_leading_underscores_for_local_identifiers
     _scrollController = ScrollController();
 
+    // initialize motionsCubit before reading its state
+    motionsCubit = BlocProvider.of<MotionsCubit>(context);
+    // currentMotion may be null, so use a nullable type
+  }
+
+  // 判断动作名称是否需要滚动
+  void needScrollText(str) {
     // 计算文字宽度
     motionsNamePainter = TextPainter(
       text: TextSpan(
-        text: motionsName,
+        text: str,
         style: TextStyle(color: Colors.grey),
       ),
       maxLines: 1,
@@ -98,6 +107,13 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   @override
   Widget build(BuildContext context) {
     jointsCubit = BlocProvider.of<JointsCubit>(context);
+
+    Motion? curMotion = motionsCubit.state.currentMotion;
+    if (curMotion != null) {
+      motionsName = curMotion.name;
+    }
+
+    needScrollText(motionsName);
 
     // TextInputControl control = TextInputControl();
     // ignore: no_leading_underscores_for_local_identifiers
@@ -197,20 +213,41 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                 children: [
                   Text("动作", style: TextStyle(color: Colors.grey)),
                   SizedBox(height: 8),
-                  motionsNamePainter.width < 120
-                      ? Text(motionsName, textAlign: TextAlign.center)
-                      : SizedBox(
-                          width: 120, // 设置一个固定宽度
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.horizontal, // 水平滚动
-                            child: Text(
-                              motionsName,
-                              // 禁止自动换行
-                              softWrap: false,
-                            ),
-                          ),
-                        ),
+                  BlocBuilder<MotionsCubit, MotionsState>(
+                    builder: (context, state) {
+                      motionsName =
+                          state.currentMotion?.name ?? '-------这是个测试名称-------';
+                      needScrollText(motionsName);
+                      return motionsNamePainter.width < 120
+                          ? Text(motionsName, textAlign: TextAlign.center)
+                          : SizedBox(
+                              width: 120, // 设置一个固定宽度
+                              child: SingleChildScrollView(
+                                controller: _scrollController,
+                                scrollDirection: Axis.horizontal, // 水平滚动
+                                child: Text(
+                                  motionsName,
+                                  // 禁止自动换行
+                                  softWrap: false,
+                                ),
+                              ),
+                            );
+                    },
+                  ),
+                  // motionsNamePainter.width < 120
+                  //     ? Text(motionsName, textAlign: TextAlign.center)
+                  //     : SizedBox(
+                  //         width: 120, // 设置一个固定宽度
+                  //         child: SingleChildScrollView(
+                  //           controller: _scrollController,
+                  //           scrollDirection: Axis.horizontal, // 水平滚动
+                  //           child: Text(
+                  //             motionsName,
+                  //             // 禁止自动换行
+                  //             softWrap: false,
+                  //           ),
+                  //         ),
+                  //       ),
                 ],
               ),
               IconButton(

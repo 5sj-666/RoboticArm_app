@@ -38,11 +38,11 @@ final logger = Logger();
 
 class MotionsState {
   final List<Motion> motions;
-  final String? currentMotion;
+  final Motion? currentMotion;
 
-  MotionsState({required this.motions, this.currentMotion = ""});
+  MotionsState({required this.motions, this.currentMotion});
 
-  MotionsState copyWith({List<Motion>? motions, String? currentMotion}) {
+  MotionsState copyWith({List<Motion>? motions, Motion? currentMotion}) {
     // print('MotionsState');
     return MotionsState(
       motions: motions ?? this.motions,
@@ -52,7 +52,7 @@ class MotionsState {
 }
 
 class MotionsCubit extends Cubit<MotionsState> {
-  MotionsCubit() : super(MotionsState(motions: [], currentMotion: '')) {
+  MotionsCubit() : super(MotionsState(motions: [], currentMotion: null)) {
     // print('---motionsCubit init');
     _initMotions();
   }
@@ -86,6 +86,26 @@ class MotionsCubit extends Cubit<MotionsState> {
     print('motionscubic更新状态 ');
     _initMotions();
   }
+
+  Motion findById(String id) {
+    var result = state.motions.where((motion) => motion.id == id);
+    return result.first;
+  }
+
+  bool setCurMotion(Motion motion) {
+    // state.currentMotion = motion;
+    try {
+      emit(state.copyWith(motions: state.motions, currentMotion: motion));
+      return true;
+    } catch (error) {
+      print('motions cubit: error $error');
+      return false;
+    }
+  }
+
+  // Motion getCurMotion() {
+  //   // return findById(state.currentMotion);
+  // }
 
   void setMotions(List<Motion> motions) {
     // emit(state.copyWith(motions: motions));

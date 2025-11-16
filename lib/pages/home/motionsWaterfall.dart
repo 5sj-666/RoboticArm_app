@@ -4,6 +4,7 @@ import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 // import '../motions/details.dart'; // 导入详情页
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/types/motions.dart';
+import 'package:robotic_arm_app/app_router.dart';
 
 class WaterfallPage extends StatelessWidget {
   @override
@@ -114,7 +115,7 @@ class MotionCard extends StatelessWidget {
     return InkWell(
       onTap: () {
         print('---点击跳转');
-        context.router.push(NamedRoute('DetailRoute'));
+        context.router.push(DetailRoute(id: motion.id));
       },
       child: SizedBox(
         width: cardWidth,

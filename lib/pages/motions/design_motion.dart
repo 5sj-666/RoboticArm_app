@@ -119,6 +119,10 @@ class _orderKeyframe extends State<OrderKeyframePage> {
 
                           var keyframe = keyframeWrapperList[index].keyframe;
                           print('---keyframe name: ${keyframe.name}');
+                          // 将keyframe的子项的timingFunction遍历统一改一下
+                          for (int i = 0; i < keyframe.children.length; i++) {
+                            keyframe.children[i].timingFunction = str;
+                          }
                           // 保存至sharedPreferences
                           final keyframeJson = json.encode(keyframe.toJson());
                           SharedPrefsStorage.save(

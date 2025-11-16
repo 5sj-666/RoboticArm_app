@@ -13,7 +13,7 @@ Keyframe _$KeyframeFromJson(Map<String, dynamic> json) => Keyframe(
       .toList(),
   time: (json['time'] as num?)?.toInt() ?? 0,
   createTime: json['createTime'] as String?,
-  timingFunction: json['timingFunction'] as String? ?? 'linear',
+  timingFunction: json['timingFunction'] as String?,
 );
 
 Map<String, dynamic> _$KeyframeToJson(Keyframe instance) => <String, dynamic>{
