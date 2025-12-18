@@ -5,8 +5,12 @@ import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/pages/home/home_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'app_router.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  // 确保 WidgetsFlutterBinding 初始化
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(
     // 提供 JointsCubit 给整个应用
     MultiBlocProvider(

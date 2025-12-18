@@ -29,6 +29,8 @@ auto_route:
 json序列化
 dart pub run build_runner build
 
+API_KEY存在.env文件中，使用flutter_dotenv加载
+
 
 
 ## Getting Started
