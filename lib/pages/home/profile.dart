@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
@@ -32,10 +33,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                     Text(
                       'user@example.com',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -61,6 +59,13 @@ class ProfilePage extends StatelessWidget {
               title: Text('退出登录'),
               onTap: () {
                 // 添加退出登录逻辑
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('删除所有记录'),
+              onTap: () {
+                SharedPrefsStorage.clearAllData();
               },
             ),
           ],

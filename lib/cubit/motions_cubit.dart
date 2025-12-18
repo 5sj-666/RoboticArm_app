@@ -39,14 +39,28 @@ final logger = Logger();
 class MotionsState {
   final List<Motion> motions;
   final Motion? currentMotion;
+  final bool runing;
+  // final int elapsedTime;
 
-  MotionsState({required this.motions, this.currentMotion});
+  MotionsState({
+    required this.motions,
+    this.currentMotion,
+    this.runing = false,
+    // this.elapsedTime = 0,
+  });
 
-  MotionsState copyWith({List<Motion>? motions, Motion? currentMotion}) {
+  MotionsState copyWith({
+    List<Motion>? motions,
+    Motion? currentMotion,
+    bool? runing,
+    // int? elapsedTime,
+  }) {
     // print('MotionsState');
     return MotionsState(
       motions: motions ?? this.motions,
       currentMotion: currentMotion ?? this.currentMotion,
+      runing: runing ?? this.runing,
+      // elapsedTime: elapsedTime ?? this.elapsedTime,
     );
   }
 }
@@ -96,6 +110,16 @@ class MotionsCubit extends Cubit<MotionsState> {
     // state.currentMotion = motion;
     try {
       emit(state.copyWith(motions: state.motions, currentMotion: motion));
+      return true;
+    } catch (error) {
+      print('motions cubit: error $error');
+      return false;
+    }
+  }
+
+  bool updateState(bool runing) {
+    try {
+      emit(state.copyWith(runing: runing));
       return true;
     } catch (error) {
       print('motions cubit: error $error');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 // import 'package:robotic_arm_app/components/MotionNode.dart';
@@ -25,6 +26,8 @@ class OrderKeyframePage extends StatefulWidget {
 // ignore: camel_case_types
 class _orderKeyframe extends State<OrderKeyframePage> {
   final List<KeyframeWrapper> keyframeWrapperList = [];
+
+  late final time = TextEditingController();
 
   @override
   void initState() {
@@ -111,6 +114,7 @@ class _orderKeyframe extends State<OrderKeyframePage> {
                   title: MotionItemCard(
                     item: keyframeWrapperList[index].keyframe,
                     index: index,
+                    showDelete: keyframeWrapperList.length > 2,
                     changeTimingFunc: (str) {
                       setState(() {
                         if (str != '') {
@@ -173,6 +177,7 @@ class MotionItemCard extends StatelessWidget {
   final int index;
   final ValueChanged<String>? changeTimingFunc;
   final ValueChanged<int>? removeTemporary;
+  final bool showDelete;
 
   MotionItemCard({
     super.key,
@@ -180,6 +185,7 @@ class MotionItemCard extends StatelessWidget {
     required this.index,
     this.changeTimingFunc,
     this.removeTemporary,
+    this.showDelete = false,
   });
 
   @override
@@ -204,10 +210,30 @@ class MotionItemCard extends StatelessWidget {
               SizedBox(
                 width: 100,
                 child: TextField(
+                  enabled: index != 0,
+                  keyboardType: TextInputType.number, // 弹出数字键盘
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly, // 仅允许数字
+                  ],
+                  controller: TextEditingController(
+                    text: item?.time.toString(),
+                  ),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: '时间',
                   ),
+                  onChanged: (value) {
+                    print('输入');
+                    var num = int.tryParse(value);
+                    if (num != null) {
+                      item!.time = num;
+                      for (int i = 0; i < (item?.children.length ?? 0); i++) {
+                        item?.children[i].time = num;
+                      }
+                    } else {
+                      item!.time = -1;
+                    }
+                  },
                 ),
               ),
               Expanded(
@@ -261,18 +287,24 @@ class MotionItemCard extends StatelessWidget {
               SizedBox(
                 // width: 30,
                 // height: 20,
-                child: FilledButton(
-                  onPressed: () {
-                    if (removeTemporary != null) {
-                      removeTemporary!(index);
-                    }
-                  },
-                  style: ButtonStyle(
-                    padding: WidgetStateProperty.all(EdgeInsetsGeometry.zero),
-                    minimumSize: WidgetStateProperty.all<Size>(Size(40, 25)),
-                  ),
-                  child: Icon(Icons.delete),
-                ),
+                child: showDelete
+                    ? FilledButton(
+                        onPressed: () {
+                          if (removeTemporary != null) {
+                            removeTemporary!(index);
+                          }
+                        },
+                        style: ButtonStyle(
+                          padding: WidgetStateProperty.all(
+                            EdgeInsetsGeometry.zero,
+                          ),
+                          minimumSize: WidgetStateProperty.all<Size>(
+                            Size(40, 25),
+                          ),
+                        ),
+                        child: Icon(Icons.delete),
+                      )
+                    : null,
               ),
             ],
           ),

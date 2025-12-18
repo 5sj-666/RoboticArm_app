@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/app_router.dart';
 import 'package:robotic_arm_app/pages/home/home_cubit.dart';
+import 'dart:convert';
 
 @RoutePage()
 class DetailPage extends StatelessWidget {
@@ -131,18 +132,24 @@ class DetailPage extends StatelessWidget {
                     ),
                   ),
 
-                  Container(
-                    width: double.infinity,
-                    height: 100,
-                    margin: EdgeInsets.only(top: 10),
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.white),
-                    child: Text(
-                      '评论',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  // Container(
+                  //   width: double.infinity,
+                  //   height: 100,
+                  //   margin: EdgeInsets.only(top: 10),
+                  //   padding: EdgeInsets.all(8),
+                  //   decoration: BoxDecoration(color: Colors.white),
+                  //   child: Text(
+                  //     '详情',
+                  //     style: TextStyle(
+                  //       fontSize: 16,
+                  //       fontWeight: FontWeight.w500,
+                  //     ),
+                  //   ),
+                  // ),
+                  SizedBox(
+                    height: 200,
+                    child: SingleChildScrollView(
+                      child: Text(json.encode(motion.toJson())),
                     ),
                   ),
                 ],

@@ -98,16 +98,16 @@ Map<String, int> jointIdMap = {
 ///String timingFunction; // 贝塞尔曲线控制点 "0,0,1,1"
 ///int motorId; // 电机ID
 class KeyframeItem {
-  int? time; // 毫秒
-  double? location; // 位置
-  String? timingFunction; // 贝塞尔曲线控制点 "0,0,1,1"
-  int? motorId; // 电机ID
+  int time; // 毫秒
+  double location; // 位置
+  String timingFunction; // 贝塞尔曲线控制点 "0,0,1,1"
+  int motorId; // 电机ID
 
   KeyframeItem({
     this.time = 0,
-    this.location,
+    this.location = 0.0,
     this.timingFunction = 'linear',
-    this.motorId,
+    required this.motorId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -151,37 +151,6 @@ class Keyframe {
   factory Keyframe.fromJson(Map<String, dynamic> json) =>
       _$KeyframeFromJson(json);
   Map<String, dynamic> toJson() => _$KeyframeToJson(this);
-
-  // Map<String, dynamic> toJson() =>
-  // factory Keyframe.fromJson(Map<String, dynamic> json) {
-  //   final List<KeyframeItem> childrenList =
-  //       (json['children'] as List<dynamic>?)
-  //           ?.map((e) => KeyframeItem.fromJson(e as Map<String, dynamic>))
-  //           .toList() ??
-  //       <KeyframeItem>[];
-
-  //   final int parsedTime = (json['time'] is num)
-  //       ? (json['time'] as num).toInt()
-  //       : int.tryParse('${json['time']}') ?? 0;
-
-  //   return Keyframe(
-  //     name: json['name']?.toString(),
-  //     children: childrenList,
-  //     time: parsedTime,
-  //     createTime: json['createTime']?.toString(),
-  //   );
-  // }
-
-  //    List<KeyframeItem> children; // 关键帧列表
-  // int time; // 毫秒
-  // String? createTi
-
-  // Map<String, dynamic> toJson() => {
-  //   'name': name,
-  //   'time': time,
-  //   'createTime': createTime,
-  //   'children': children,
-  // };
 }
 
 // motion则是由多个keyframe组合而成，
@@ -210,32 +179,8 @@ class Motion {
   });
 
   Map<String, dynamic> toJson() => _$MotionToJson(this);
-  // Map<String, dynamic> toJson() => {
-  //       'id': id,
-  //       'name': name,
-  //       'description': description,
-  //       'createTime': createTime,
-  //       'imgs': imgs,
-  //       'coverImg': coverImg,
-  //       'children': children,
-  //     };
-  factory Motion.fromJson(Map<String, dynamic> json) => _$MotionFromJson(json);
-  // factory Motion.fromJson(Map<String, dynamic> json) {
-  //   final List<Keyframe> childrenList = (json['children'] as List<dynamic>?)
-  //           ?.map((e) => Keyframe.fromJson(e as Map<String, dynamic>))
-  //           .toList() ??
-  //       <Keyframe>[];
 
-  //   return Motion(
-  //     id: json['id'],
-  //     name: json['name'],
-  //     description: json['description'],
-  //     createTime: json['createTime'],
-  //     imgs: json['imgs'],
-  //     coverImg: json['coverImg'],
-  //     children: childrenList,
-  //   );
-  // }
+  factory Motion.fromJson(Map<String, dynamic> json) => _$MotionFromJson(json);
 }
 
 /// 根据关节的位置信息生成关键帧

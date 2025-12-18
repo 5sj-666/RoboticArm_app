@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
   final List<Widget> _pages = [
     WaterfallPage(), // 瀑布流页面
     DevicesPage(), // 设备页面
-    AiChatPage(), // AI聊天页面
+    GenerativeAISample(), // AI聊天页面
     ProfilePage(), // 个人资料页
   ];
 

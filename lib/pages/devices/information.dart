@@ -67,6 +67,12 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     )..layout();
 
     void scrollFunc() {
+      try {
+        _timer.cancel();
+      } catch (err) {
+        ///
+      }
+
       bool directionLTR = true; // 标记方向
       // print();
       // if (_scrollController.offset > 120) {
@@ -197,28 +203,34 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                iconSize: 32,
-                tooltip: '蓝牙',
-                icon: const Icon(Icons.bluetooth, color: Colors.grey),
-                onPressed: () {
-                  print('蓝牙');
-                },
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: BlocBuilder<MotionsCubit, MotionsState>(
+            builder: (context, state) {
+              motionsName =
+                  state.currentMotion?.name ?? '-------这是个测试名称-------';
+              needScrollText(motionsName);
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Text("动作", style: TextStyle(color: Colors.grey)),
-                  SizedBox(height: 8),
-                  BlocBuilder<MotionsCubit, MotionsState>(
-                    builder: (context, state) {
-                      motionsName =
-                          state.currentMotion?.name ?? '-------这是个测试名称-------';
-                      needScrollText(motionsName);
-                      return motionsNamePainter.width < 120
+                  IconButton(
+                    iconSize: 32,
+                    tooltip: '蓝牙',
+                    icon: const Icon(Icons.bluetooth, color: Colors.grey),
+                    onPressed: () {
+                      print('蓝牙');
+                    },
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("动作", style: TextStyle(color: Colors.grey)),
+                      SizedBox(height: 8),
+                      // BlocBuilder<MotionsCubit, MotionsState>(
+                      //   builder: (context, state) {
+                      //     motionsName =
+                      //         state.currentMotion?.name ?? '-------这是个测试名称-------';
+                      //     needScrollText(motionsName);
+                      //     return
+                      motionsNamePainter.width < 120
                           ? Text(motionsName, textAlign: TextAlign.center)
                           : SizedBox(
                               width: 120, // 设置一个固定宽度
@@ -231,42 +243,55 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                                   softWrap: false,
                                 ),
                               ),
-                            );
+                            ),
+                      // },
+                      // ),
+                    ],
+                  ),
+                  state.runing
+                      ? IconButton(
+                          iconSize: 32,
+                          icon: const Icon(Icons.pause, color: Colors.blue),
+                          tooltip: '运行中',
+                          onPressed: () {
+                            print('stop motion');
+                            motionsCubit.updateState(false);
+                          },
+                        )
+                      : IconButton(
+                          iconSize: 32,
+                          icon: const Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.blue,
+                          ),
+                          tooltip: '开始',
+                          onPressed: () {
+                            print('play motions');
+                            motionsCubit.updateState(true);
+                          },
+                        ),
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.stop_rounded, color: Colors.blue),
+                    tooltip: '停止',
+                    onPressed: () {
+                      print('stop motions');
                     },
                   ),
-                  // motionsNamePainter.width < 120
-                  //     ? Text(motionsName, textAlign: TextAlign.center)
-                  //     : SizedBox(
-                  //         width: 120, // 设置一个固定宽度
-                  //         child: SingleChildScrollView(
-                  //           controller: _scrollController,
-                  //           scrollDirection: Axis.horizontal, // 水平滚动
-                  //           child: Text(
-                  //             motionsName,
-                  //             // 禁止自动换行
-                  //             softWrap: false,
-                  //           ),
-                  //         ),
-                  //       ),
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(
+                      Icons.precision_manufacturing,
+                      color: Colors.blue,
+                    ),
+                    tooltip: '准备',
+                    onPressed: () {
+                      print('prepare motions');
+                    },
+                  ),
                 ],
-              ),
-              IconButton(
-                iconSize: 32,
-                icon: const Icon(Icons.play_arrow_rounded, color: Colors.blue),
-                tooltip: '开始',
-                onPressed: () {
-                  print('play motions');
-                },
-              ),
-              IconButton(
-                iconSize: 32,
-                icon: const Icon(Icons.stop_rounded, color: Colors.blue),
-                tooltip: '停止',
-                onPressed: () {
-                  print('stop motions');
-                },
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -341,7 +366,9 @@ Keyframe generateKeyframe(Joints positions, String inputName) {
     children: [],
   );
   positionMap.forEach((key, value) {
-    final item = KeyframeItem(location: value, motorId: jointIdMap[key]);
+    final motorId = jointIdMap[key];
+    if (motorId == null) return;
+    final item = KeyframeItem(location: value, motorId: motorId);
     keyframe.children.add(item);
   });
 
