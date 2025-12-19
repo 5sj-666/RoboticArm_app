@@ -28,6 +28,8 @@ class FlutterGameState extends State<ArmPage> {
   late MotionsCubit motionsCubit;
 
   late RunTimeWorkSpace rt;
+  // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
+  late List preparingInitPosition;
 
   // late
 
@@ -258,7 +260,50 @@ class FlutterGameState extends State<ArmPage> {
       // threeJs.renderer!.render(threeJs.scene, threeJs.camera);
 
       //这里添加动画效果
-      if (motionsCubit.state.runing) {
+      if (motionsCubit.state.status == MotionStatus.preparing) {
+        print('---准备动作中');
+        if (rt.elapsedTime == 0.0) {
+          // 目标关节位置在于动作的第一帧
+          rt.curKeyframe = rt.keyframeList[0];
+
+          preparingInitPosition = [
+            jointsCubit.state.joint1,
+            jointsCubit.state.joint2,
+            jointsCubit.state.joint3,
+            jointsCubit.state.joint4,
+            jointsCubit.state.joint5,
+            jointsCubit.state.joint6,
+          ];
+          for (int i = 0; i < rt.curKeyframe!.children.length; i++) {
+            rt.deltaDeg[i] =
+                rt.curKeyframe!.children[i].location - preparingInitPosition[i];
+          }
+          print('---准备动作中，目标位置差值: ${rt.deltaDeg}');
+          print('-- currentPositions $preparingInitPosition');
+
+          // 如果当前的动作位置和目标位置完全一致，则直接切换到ready状态
+          bool allZero = rt.deltaDeg.every((deg) => deg.abs() < 0.01);
+          if (allZero) {
+            motionsCubit.updateStatus(MotionStatus.ready);
+            return;
+          }
+        }
+        // 将机械臂姿态移动到第一帧位置
+        rt.elapsedTime += dt;
+        // 直接是等比例速度移动到第一帧位置, 过渡时间为2秒
+        double progress = (rt.elapsedTime) / 2.0;
+
+        for (int j = 0; j < rt.curKeyframe!.children.length; j++) {
+          double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
+          jointsCubit.setSingleJoint('joint${j + 1}', deg);
+        }
+
+        if (progress >= 1.0) {
+          // 准备完成，切换到ready状态
+          motionsCubit.updateStatus(MotionStatus.ready);
+          rt.elapsedTime = 0.0;
+        }
+      } else if (motionsCubit.state.status == MotionStatus.running) {
         print('---运行动画${rt.len}');
         // print('dt: $dt, ${(elapsedTime * 1000).toInt()}');
         rt.elapsedTime += dt;
@@ -337,7 +382,9 @@ class FlutterGameState extends State<ArmPage> {
             }
           }
           if (i == rt.len) {
-            motionsCubit.updateState(false);
+            // motionsCubit.updateState(false);
+            // motionsCubit.updateStatus(MotionStatus.finished);
+            motionsCubit.updateStatus(MotionStatus.prepare);
             rt.elapsedTime = 0;
           }
 
@@ -361,7 +408,8 @@ class FlutterGameState extends State<ArmPage> {
           // }
         }
       } else {
-        if (rt.elapsedTime != 0) {
+        if (motionsCubit.state.status == MotionStatus.prepare ||
+            motionsCubit.state.status == MotionStatus.ready) {
           rt.elapsedTime = 0;
         }
       }

@@ -178,6 +178,7 @@ class DetailPage extends StatelessWidget {
                           child: FilledButton(
                             onPressed: () {
                               bool result = motionsCubit.setCurMotion(motion);
+                              motionsCubit.updateStatus(MotionStatus.prepare);
                               if (result) {
                                 homeCubit.setIndex(1);
                                 context.router.popUntil(

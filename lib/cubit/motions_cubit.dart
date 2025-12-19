@@ -36,16 +36,25 @@ final logger = Logger();
       }, 
   **/
 
+// 定义动作状态枚举 播放结束： finished
+// 需要准备好,才能运行
+enum MotionStatus { idle, prepare, preparing, ready, running, paused, finished }
+
 class MotionsState {
   final List<Motion> motions;
   final Motion? currentMotion;
   final bool runing;
+  final bool firstRun;
+  final MotionStatus status;
+
   // final int elapsedTime;
 
   MotionsState({
     required this.motions,
     this.currentMotion,
     this.runing = false,
+    this.firstRun = true,
+    this.status = MotionStatus.idle,
     // this.elapsedTime = 0,
   });
 
@@ -53,6 +62,8 @@ class MotionsState {
     List<Motion>? motions,
     Motion? currentMotion,
     bool? runing,
+    bool? firstRun,
+    MotionStatus? status,
     // int? elapsedTime,
   }) {
     // print('MotionsState');
@@ -60,6 +71,8 @@ class MotionsState {
       motions: motions ?? this.motions,
       currentMotion: currentMotion ?? this.currentMotion,
       runing: runing ?? this.runing,
+      firstRun: firstRun ?? this.firstRun,
+      status: status ?? this.status,
       // elapsedTime: elapsedTime ?? this.elapsedTime,
     );
   }
@@ -120,6 +133,17 @@ class MotionsCubit extends Cubit<MotionsState> {
   bool updateState(bool runing) {
     try {
       emit(state.copyWith(runing: runing));
+      return true;
+    } catch (error) {
+      print('motions cubit: error $error');
+      return false;
+    }
+  }
+
+  bool updateStatus(MotionStatus status) {
+    try {
+      // emit(state.copyWith(runing: runing));
+      emit(state.copyWith(status: status));
       return true;
     } catch (error) {
       print('motions cubit: error $error');
