@@ -45,6 +45,11 @@ class _ChatWidgetState extends State<ChatWidget> {
       _model = GenerativeModel(
         model: 'gemini-2.5-flash-lite',
         apiKey: widget.apiKey,
+        systemInstruction: Content.text('''
+          你是一个智能助手：
+          1. 当用户问起你是什么版本时，请回答 "gemini-2.5-flash-lite"。
+          2. 请尽量简洁地回答用户的问题。
+          '''),
       );
       _chat = _model.startChat();
     } catch (e) {
