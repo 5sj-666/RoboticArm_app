@@ -3,6 +3,7 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'dart:convert';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
+import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'package:robotic_arm_app/components/joint_slider.dart';
@@ -11,6 +12,7 @@ import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
+import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -23,6 +25,7 @@ class DeviceInformationPage extends StatefulWidget {
 class _deviceInformationPage extends State<DeviceInformationPage> {
   late JointsCubit jointsCubit;
   late MotionsCubit motionsCubit;
+  late BleCubit bleCubit;
 
   // String motionsName = "motions名称很长,需要滚动起来起来";
   String motionsName = "";
@@ -52,7 +55,8 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
 
     // initialize motionsCubit before reading its state
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
-    // currentMotion may be null, so use a nullable type
+    bleCubit = BlocProvider.of<BleCubit>(context);
+    bleCubit.init();
   }
 
   // 判断动作名称是否需要滚动
@@ -121,11 +125,6 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     }
 
     needScrollText(motionsName);
-
-    // TextInputControl control = TextInputControl();
-    // ignore: no_leading_underscores_for_local_identifiers
-
-    // print('Information Page 关节1: ${jointsCubit.state.joint1}');
 
     return SlidingUpPanel(
       // color: Colors.black,
@@ -213,12 +212,79 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
-                    iconSize: 32,
-                    tooltip: '蓝牙',
-                    icon: const Icon(Icons.bluetooth, color: Colors.grey),
-                    onPressed: () {
-                      print('蓝牙');
+                  BlocBuilder<BleCubit, BleState>(
+                    builder: (bleContext, state) {
+                      return Row(
+                        children: [
+                          if (state.status == BleStatus.unknow ||
+                              state.status == BleStatus.off ||
+                              state.status == BleStatus.on)
+                            IconButton(
+                              iconSize: 32,
+                              tooltip: '蓝牙',
+                              icon: bleCubit.state.isBleOn
+                                  ? const Icon(
+                                      Icons.bluetooth,
+                                      color: Colors.blue,
+                                    )
+                                  : const Icon(
+                                      Icons.bluetooth,
+                                      color: Colors.grey,
+                                    ),
+                              onPressed: () async {
+                                print('蓝牙');
+                                final result = await bleCubit.turnOn();
+                                // 请求打开蓝牙的permission
+                                SnackBar snackBar;
+                                if (result) {
+                                  snackBar = SnackBar(content: Text('打开蓝牙成功'));
+                                } else {
+                                  snackBar = SnackBar(
+                                    content: Text('打开失败，请去系统中打开蓝牙'),
+                                  );
+                                }
+
+                                ScaffoldMessenger.of(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                ).showSnackBar(snackBar);
+                              },
+                            ),
+                          if (state.status == BleStatus.scan ||
+                              state.status == BleStatus.on ||
+                              state.status == BleStatus.scaned)
+                            ElevatedButton(
+                              onPressed: () {
+                                _showDialog(context);
+                                print('---点击扫描----');
+                                bleCubit.bleScan();
+                              },
+                              child: Text('扫描设备'),
+                            ),
+                          if (state.status == BleStatus.scaning)
+                            ElevatedButton(
+                              onPressed: () {
+                                print('---点击暂停扫描----');
+                                bleCubit.bleStopScan();
+                              },
+                              child: Text('扫描中'),
+                            ),
+
+                          if (state.status == BleStatus.connected ||
+                              state.status == BleStatus.connecting)
+                            ElevatedButton(
+                              onPressed: () {
+                                print('---已连接设备, 点击查看列表----');
+                                _showDialog(context);
+                              },
+                              child: Text(
+                                state.status == BleStatus.connected
+                                    ? '已连接'
+                                    : '连接中',
+                              ),
+                            ),
+                        ],
+                      );
                     },
                   ),
                   Column(
@@ -426,4 +492,28 @@ Keyframe generateKeyframe(Joints positions, String inputName) {
   });
 
   return keyframe;
+}
+
+Future<void> _showDialog(context) async {
+  return showDialog<void>(
+    animationStyle: AnimationStyle(),
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('连接机械臂'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 200,
+          child: Bledevices(),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('关闭'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      );
+    },
+  );
 }

@@ -31,6 +31,15 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 	</dict>
+	<!-- <key>NSBluetoothAlwaysUsageDescription</key>
+	<string>连接机械臂需要蓝牙</string> -->
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>连接机械臂需要蓝牙</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>连接机械臂需要蓝牙</string>
+	<!-- 若需位置权限（低版本BLE扫描） -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>需要位置权限扫描蓝牙设备</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

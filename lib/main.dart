@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
+import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/pages/home/home_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'app_router.dart';
@@ -18,6 +19,7 @@ void main() async {
         BlocProvider(create: (context) => JointsCubit()),
         BlocProvider(create: (context) => MotionsCubit()),
         BlocProvider(create: (context) => HomeCubit()),
+        BlocProvider(create: (context) => BleCubit()),
       ],
       child: MyApp(),
     ),

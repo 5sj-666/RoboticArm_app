@@ -56,6 +56,9 @@ PODS:
   - flutter_angle_darwin (0.0.2):
     - Flutter
     - FlutterMacOS
+  - flutter_blue_plus_darwin (0.0.2):
+    - Flutter
+    - FlutterMacOS
   - flutter_gl (0.0.3):
     - Flutter
     - three3d_egl (~> 0.1.3)
@@ -89,6 +92,8 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - permission_handler_apple (9.3.0):
+    - Flutter
   - PromisesObjC (2.4.0)
   - RecaptchaInterop (101.0.0)
   - record_ios (1.1.0):
@@ -114,9 +119,11 @@ DEPENDENCIES:
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
   - flutter_angle_darwin (from `.symlinks/plugins/flutter_angle_darwin/darwin`)
+  - flutter_blue_plus_darwin (from `.symlinks/plugins/flutter_blue_plus_darwin/darwin`)
   - flutter_gl (from `.symlinks/plugins/flutter_gl/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - record_ios (from `.symlinks/plugins/record_ios/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - three_js_sensors (from `.symlinks/plugins/three_js_sensors/ios`)
@@ -157,12 +164,16 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_angle_darwin:
     :path: ".symlinks/plugins/flutter_angle_darwin/darwin"
+  flutter_blue_plus_darwin:
+    :path: ".symlinks/plugins/flutter_blue_plus_darwin/darwin"
   flutter_gl:
     :path: ".symlinks/plugins/flutter_gl/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
   record_ios:
     :path: ".symlinks/plugins/record_ios/ios"
   shared_preferences_foundation:
@@ -192,11 +203,13 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: 69bf1306a05b8ac43004f6cc1f804bb7b05b229e
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_angle_darwin: 2d14730bf18cba8f4fd6e300f54e9eb33fcf658b
+  flutter_blue_plus_darwin: 904ed52825285a15f60e9d90312337a09f11a785
   flutter_gl: 5a5603f35db897697f064027864a32b15d0c421d
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 02d6e866e90bc236f48a703a041dfe43e6221a29
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
   record_ios: 840d21cce013c5a3b2168b74a54ebdb4136359e2
