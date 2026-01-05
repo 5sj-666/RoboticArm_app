@@ -4,6 +4,7 @@ import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/pages/home/home_cubit.dart';
+import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'app_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -20,6 +21,7 @@ void main() async {
         BlocProvider(create: (context) => MotionsCubit()),
         BlocProvider(create: (context) => HomeCubit()),
         BlocProvider(create: (context) => BleCubit()),
+        BlocProvider(create: (context) => MotorLogCubit()),
       ],
       child: MyApp(),
     ),
