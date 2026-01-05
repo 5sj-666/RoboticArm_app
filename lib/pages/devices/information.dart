@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:robotic_arm_app/utils/motorCmd.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'dart:convert';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
+import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'package:robotic_arm_app/components/joint_slider.dart';
@@ -13,6 +15,7 @@ import 'package:robotic_arm_app/types/motions.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
+import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -26,6 +29,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   late JointsCubit jointsCubit;
   late MotionsCubit motionsCubit;
   late BleCubit bleCubit;
+  late MotorLogCubit motorLogCubit;
 
   // String motionsName = "motions名称很长,需要滚动起来起来";
   String motionsName = "";
@@ -47,6 +51,37 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     });
   }
 
+  void _updateJointEnd(double newVal, int index) {
+    print('---关节变化结束---');
+
+    /// 将速度指令和位置指令发送给单片机
+    final motorCmd = MotorCmdGenerator();
+    final enableCmd = motorCmd.generateCMD('enable', {'motorId': 21});
+    bleCubit.sendSingleCmd(enableCmd);
+    motorLogCubit.addLog(cmd: enableCmd);
+
+    final runmodeCmd = motorCmd.generateCMD('run_mode', {
+      'motorId': 21,
+      'run_mode': 1,
+    });
+    bleCubit.sendSingleCmd(runmodeCmd);
+    motorLogCubit.addLog(cmd: runmodeCmd);
+
+    final speedCmd = motorCmd.generateCMD('limit_spd', {
+      'motorId': 21,
+      'limit_spd': 2.0,
+    });
+    bleCubit.sendSingleCmd(speedCmd);
+    motorLogCubit.addLog(cmd: speedCmd);
+
+    final locationCmd = motorCmd.generateCMD('loc_ref', {
+      'motorId': 21 + index,
+      'loc_ref': newVal / 180 * 3.14,
+    });
+    bleCubit.sendSingleCmd(locationCmd);
+    motorLogCubit.addLog(cmd: locationCmd);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +92,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
     bleCubit = BlocProvider.of<BleCubit>(context);
     bleCubit.init();
+    motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
   }
 
   // 判断动作名称是否需要滚动
@@ -152,8 +188,9 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                       value: _jointValues[i],
                       onValueChanged: _updateJointValue,
                       index: i,
-                      min: i == 1 ? -130.0 : -180.0,
-                      max: i == 1 ? 130.0 : 180.0,
+                      min: i == 1 ? -130.0 : -145.0,
+                      max: i == 1 ? 130.0 : 145.0,
+                      onChangeEnd: _updateJointEnd,
                     ),
                   ),
               ],
@@ -389,24 +426,20 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                       },
                       child: Text('结束'),
                     ),
-                  // IconButton(
-                  //   iconSize: 32,
-                  //   icon: const Icon(Icons.stop_rounded, color: Colors.blue),
-                  //   tooltip: '停止',
-                  //   onPressed: () {
-                  //     print('stop motions');
-                  //   },
-                  // ),
-                  IconButton(
-                    iconSize: 32,
-                    icon: const Icon(
-                      Icons.precision_manufacturing,
-                      color: Colors.blue,
-                    ),
-                    tooltip: '准备',
+                  TextButton(
                     onPressed: () {
-                      print('prepare motions');
+                      print('使能');
+                      // bleCubit.sendEnableCmd();
+                      // bleCubit.sendEnableCmd();
                     },
+                    child: Text('使能'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      print('日志');
+                      _showMotorLog(context);
+                    },
+                    child: Text('日志'),
                   ),
                 ],
               );
@@ -505,7 +538,31 @@ Future<void> _showDialog(context) async {
         content: SizedBox(
           width: double.maxFinite,
           height: 200,
-          child: Bledevices(),
+          child: BleDevices(),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('关闭'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _showMotorLog(context) async {
+  return showDialog<void>(
+    animationStyle: AnimationStyle(),
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('电机日志'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 200,
+          child: MotorLogPage(),
         ),
         actions: [
           TextButton(

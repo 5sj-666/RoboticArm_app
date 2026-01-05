@@ -6,18 +6,21 @@ class JointSlider extends StatelessWidget {
   final String title;
   final double value;
   final ValueChangeWithKeyName onValueChanged;
+  final ValueChangeWithKeyName? onChangeEnd;
   final int index;
   final double min;
   final double max;
 
-  const JointSlider(
-      {super.key,
-      required this.value,
-      required this.onValueChanged,
-      required this.index,
-      required this.title,
-      this.min = -180.0,
-      this.max = 180.0});
+  const JointSlider({
+    super.key,
+    required this.value,
+    required this.onValueChanged,
+    required this.index,
+    required this.title,
+    this.min = -135.0,
+    this.max = 135.0,
+    this.onChangeEnd,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,20 +31,24 @@ class JointSlider extends StatelessWidget {
           alignment: Alignment(-1.0, 0.0),
           width: 160,
           decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(2),
-              border: Border(
-                  bottom: BorderSide(
-                      color: Colors.blue.shade100,
-                      width: 0.8,
-                      style: BorderStyle.solid))),
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(2),
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.blue.shade100,
+                width: 0.8,
+                style: BorderStyle.solid,
+              ),
+            ),
+          ),
           child: Text(
             '$title: ${value.toStringAsFixed(4)}°',
             textAlign: TextAlign.left,
             style: TextStyle(
-                fontSize: 12,
-                color: Colors.black87,
-                fontWeight: FontWeight.w200),
+              fontSize: 12,
+              color: Colors.black87,
+              fontWeight: FontWeight.w200,
+            ),
           ),
         ),
         Slider(
@@ -52,6 +59,11 @@ class JointSlider extends StatelessWidget {
           value: value,
           onChanged: (double newVal) {
             onValueChanged(newVal, index);
+          },
+          onChangeEnd: (double newVal) {
+            if (onChangeEnd != null) {
+              onChangeEnd!(newVal, index);
+            }
           },
         ),
       ],

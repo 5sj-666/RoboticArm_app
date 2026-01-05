@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
-// import 'package:three_js_core/three_js_core.dart' as three_core;
-// import 'package:three_js_core/geometries/plane_geometry.dart'
-// import 'package:three_js_core/materials/mesh_basic_material.dart';
-// import 'package:three_js_core/objects/mesh.dart';
 import 'package:flutter/services.dart';
-
+import 'package:robotic_arm_app/utils/bezierX2Y.dart';
+import 'package:robotic_arm_app/cubit/ble_cubit.dart';
+import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:robotic_arm_app/utils/bezierX2Y.dart';
+// import 'dart:typed_data';
+// import 'package:robotic_arm_app/utils/motorCmd.dart';
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -26,6 +24,7 @@ class FlutterGameState extends State<ArmPage> {
   late three.ThreeJS threeJs;
   late JointsCubit jointsCubit;
   late MotionsCubit motionsCubit;
+  late BleCubit bleCubit;
 
   late RunTimeWorkSpace rt;
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
@@ -46,6 +45,7 @@ class FlutterGameState extends State<ArmPage> {
     // 在这里安全获取 context 相关的依赖
     jointsCubit = BlocProvider.of<JointsCubit>(context);
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
+    bleCubit = BlocProvider.of<BleCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
 
@@ -326,7 +326,7 @@ class FlutterGameState extends State<ArmPage> {
               //     (rt.elapsedTime - rt.preKeyframe!.time) /
               //       (rt.curKeyframe!.time - rt.preKeyframe!.time),
               //   [.2, .2],[.5, .5]);
-              ratio = ratio;
+              // ratio = ratio;
               print('t: $t ratio: $ratio');
 
               var jointsFrame = rt.curKeyframe?.children ?? [];
@@ -335,49 +335,28 @@ class FlutterGameState extends State<ArmPage> {
                 rt.deltaDeg[j] =
                     rt.curKeyframe!.children[j].location -
                     rt.preKeyframe!.children[j].location;
-                if (j == 0) {
-                  double deg =
-                      rt.deltaDeg[j] * ratio +
-                      rt.preKeyframe!.children[j].location;
-                  // oneWrapper.rotation.y = -(deg) / 180;
-                  print('deg1: $deg, deltaDeg: ${rt.deltaDeg[j]}');
-                  jointsCubit.setSingleJoint('joint1', deg);
-                }
-                if (j == 1) {
-                  double deg =
-                      rt.deltaDeg[j] * ratio +
-                      rt.preKeyframe!.children[j].location;
-                  // twoWrapper.rotation.z = -(deg) / 180;
-                  // print('deg2: $deg');
-                  jointsCubit.setSingleJoint('joint2', deg);
-                }
-                if (j == 2) {
-                  double deg =
-                      rt.deltaDeg[j] * ratio +
-                      rt.preKeyframe!.children[j].location;
-                  // threeWrapper.rotation.z = -(deg) / 180;
-                  jointsCubit.setSingleJoint('joint3', deg);
-                  // print('deg3: $deg');
-                }
-                if (j == 3) {
-                  double deg =
-                      rt.deltaDeg[j] * ratio +
-                      rt.preKeyframe!.children[j].location;
-                  // fourWrapper.rotation.y = -(deg) / 180;
-                  jointsCubit.setSingleJoint('joint4', deg);
-                  // print('deg4: $deg');
-                }
-                if (j == 4) {
-                  double deg =
-                      rt.deltaDeg[j] * ratio +
-                      rt.preKeyframe!.children[j].location;
-                  // fiveWrapper.rotation.z = -(deg) / 180;
-                  jointsCubit.setSingleJoint('joint5', deg);
-                  // print('deg5: $deg');
-                }
-              }
 
-              print('deltaTime: ${rt.deltaTime}');
+                double deg =
+                    rt.deltaDeg[j] * ratio +
+                    rt.preKeyframe!.children[j].location;
+                jointsCubit.setSingleJoint('joint${j + 1}', deg);
+                // 单片机需要 i *2 是位置， i* 2 + 1是速度
+                rt.result[j * 2] = deg / 180 * math.pi;
+                // delta距离 / delta时间 = 速度
+                rt.result[j * 2 + 1] =
+                    (rt.deltaDeg[j] * ratio - rt.deltaDeg[j] * rt.preRatio) /
+                    dt /
+                    180 *
+                    math.pi;
+
+                print(
+                  '距离差额比例: ${ratio - rt.preRatio} 距离差额$deg, 时间差额: $dt, 历经时间${rt.elapsedTime}',
+                );
+              }
+              rt.preRatio = ratio;
+
+              print('deltaTime: ${rt.deltaTime} ${rt.result}');
+              bleCubit.sendMsg(rt.result);
               break;
             }
           }
@@ -523,6 +502,9 @@ class RunTimeWorkSpace {
   int deltaTime;
   //最终需要的位置和速度信息
   List<double> result;
+  double preRatio;
+  // 用来计算与上一帧的时间差，因为有可能并非严格等差时间。
+  // double preElapsedTime;
 
   RunTimeWorkSpace({
     required this.curMotion,
@@ -534,6 +516,7 @@ class RunTimeWorkSpace {
     this.deltaDeg = const [],
     this.deltaTime = 0,
     this.result = const [],
+    this.preRatio = 0.0,
   }) {
     keyframeList = curMotion?.children ?? const [];
     curKeyframe =

@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
-// import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:robotic_arm_app/utils/motorCmd.dart';
 
 // 未打开蓝牙，已打开蓝牙， 未知蓝牙（ios的未授权状态）， 未扫描， 扫描中， 扫描完成， 未连接，连接中，已连接
 enum BleStatus {
@@ -30,6 +31,7 @@ class BleState {
   // final StreamSubscription? scanResultSubscription;
   final bool isScanning;
   // final StreamSubscription? scanningSubscription;
+  final BluetoothCharacteristic? characteristic;
 
   BleState({
     this.status = BleStatus.unknow,
@@ -43,6 +45,7 @@ class BleState {
     // this.scanResultSubscription,
     this.isScanning = false,
     // this.scanningSubscription,
+    this.characteristic,
   });
 
   copyWith({
@@ -57,6 +60,7 @@ class BleState {
     // StreamSubscription? scanResultSubscription,
     bool? isScanning,
     // StreamSubscription? scanningSubscription,
+    BluetoothCharacteristic? characteristic,
   }) {
     return BleState(
       status: status ?? this.status,
@@ -70,6 +74,7 @@ class BleState {
       // scanResultSubscription ?? this.scanResultSubscription,
       isScanning: isScanning ?? this.isScanning,
       // scanningSubscription: scanningSubscription ?? this.scanningSubscription,
+      characteristic: characteristic ?? this.characteristic,
     );
   }
 }
@@ -122,6 +127,7 @@ class BleCubit extends Cubit<BleState> {
         // bleConnect(latestResult.device);
       }
     }, onError: (error) => print('扫描出错: $error'));
+    whenBleDisconnect();
   }
 
   // 2. 判断是否支持蓝牙
@@ -165,8 +171,8 @@ class BleCubit extends Cubit<BleState> {
   Future<void> bleScan() async {
     emit(state.copyWith(status: BleStatus.scaning));
     await FlutterBluePlus.startScan(
-      // withServices: [Guid("00ff")], // 匹配指定服务 UUID
-      // withNames: ["ESP"], // 或匹配指定设备名称
+      withServices: [Guid("00ff")], // 匹配指定服务 UUID
+      withNames: ["ESP"], // 或匹配指定设备名称
       timeout: Duration(seconds: 15), // 扫描超时时间
     );
 
@@ -185,11 +191,55 @@ class BleCubit extends Cubit<BleState> {
       emit(state.copyWith(status: BleStatus.connecting, device: device));
       await device.connect(autoConnect: false, license: License.free);
       emit(state.copyWith(status: BleStatus.connected));
+      getWriteChracteristic();
       return true;
     } catch (e) {
       print('连接设备失败: $e');
       emit(state.copyWith(status: BleStatus.disconnected, device: null));
       return false;
+    }
+  }
+
+  /// 获取特征值。特征值编号: 0xff01
+  getWriteChracteristic() async {
+    BluetoothDevice? device = state.device;
+    if (device == null) return;
+    List<BluetoothService> services = await device.discoverServices();
+
+    // ignore: avoid_function_literals_in_foreach_calls
+    services.forEach((service) async {
+      // 处理服务
+      // 读取服务下所有支持读取的特征值
+      var characteristics = service.characteristics;
+      for (BluetoothCharacteristic characteristic in characteristics) {
+        // if (characteristic.properties.read) {
+        if (characteristic.properties.write) {
+          print('---获取到特征值_写');
+          // List<int> value = await characteristic.read();
+          // print("特征值：$value");
+          emit(state.copyWith(characteristic: characteristic));
+          await setNotify();
+          characteristic.write([1, 2, 3]);
+        }
+      }
+    });
+  }
+
+  setNotify() async {
+    if (state.characteristic != null) {
+      final subscription = state.characteristic!.lastValueStream.listen((
+        List<int> value,
+      ) {
+        print('----接收到来自蓝牙的通知: $value');
+        // lastValueStream 触发场景：
+        // - 调用 read() 后
+        // - 调用 write() 后
+        // - 收到通知时
+        // - 首次监听时，会重放最后一次的值（便于初始化）
+      });
+
+      state.device?.cancelWhenDisconnected(subscription);
+      await state.characteristic?.setNotifyValue(true);
     }
   }
 
@@ -205,32 +255,33 @@ class BleCubit extends Cubit<BleState> {
       return false;
     }
   }
-  // /// 断开蓝牙
-  // whenBleDisconnect() {
-  //   if (state.device != null) {
-  //     // 1. 监听断开连接事件
-  //     var subscription = state.device?.connectionState.listen((
-  //       BluetoothConnectionState bleState,
-  //     ) async {
-  //       if (bleState == BluetoothConnectionState.disconnected) {
-  //         // 1. 通常可启动定时任务重连，或立即调用 connect() 重连
-  //         // 2. 断开连接后必须重新发现服务！
-  //         print(
-  //           "断开原因：${state.device?.disconnectReason?.code} ${state.device?.disconnectReason?.description}",
-  //         );
-  //       }
-  //     });
 
-  //     // 2. 断开连接时取消监听
-  //     // delayed: true → 延迟取消，确保能收到 disconnected 事件（仅适用于 connectionState 监听）
-  //     // next: true → 仅取消下一次断开连接的监听（适用于连接前初始化的监听）
-  //     state.device?.cancelWhenDisconnected(
-  //       subscription as StreamSubscription,
-  //       delayed: true,
-  //       next: true,
-  //     );
-  //   }
-  // }
+  /// 断开蓝牙时的回调
+  whenBleDisconnect() {
+    if (state.device != null) {
+      // 1. 监听断开连接事件
+      var subscription = state.device?.connectionState.listen((
+        BluetoothConnectionState bleState,
+      ) async {
+        if (bleState == BluetoothConnectionState.disconnected) {
+          // 1. 通常可启动定时任务重连，或立即调用 connect() 重连
+          // 2. 断开连接后必须重新发现服务！
+          print(
+            "断开原因：${state.device?.disconnectReason?.code} ${state.device?.disconnectReason?.description}",
+          );
+        }
+      });
+
+      // 2. 断开连接时取消监听
+      // delayed: true → 延迟取消，确保能收到 disconnected 事件（仅适用于 connectionState 监听）
+      // next: true → 仅取消下一次断开连接的监听（适用于连接前初始化的监听）
+      state.device?.cancelWhenDisconnected(
+        subscription as StreamSubscription,
+        delayed: true,
+        next: true,
+      );
+    }
+  }
 
   Future<bool> turnOn() async {
     // 3. 手动开启蓝牙（仅 Android 支持，iOS 需用户手动开启）
@@ -240,6 +291,28 @@ class BleCubit extends Cubit<BleState> {
       return true;
     } else {
       return false;
+    }
+  }
+
+  /// 发送消息给单片机，数据格式List.length === 12 ； i是位置，i+1是速度
+  /// positions表示直接将六个关节的位置和速度，以len=12的数组发给单片机
+  sendMsg(List<double> message) async {
+    if (state.characteristic != null) {
+      //接受的是double数组，将其转为unit8List
+      Float32List floatList = Float32List.fromList(message);
+      // 转换为字节数组
+      Uint8List byteList = floatList.buffer.asUint8List();
+      await state.characteristic!.write(byteList, withoutResponse: false);
+      // state.characteristic.
+    } else {
+      // 无特征值时的错误处理
+    }
+  }
+
+  /// 通过蓝牙直接发送点击指令
+  sendSingleCmd(List<int> cmd) async {
+    if (state.characteristic != null) {
+      await state.characteristic!.write(cmd, withoutResponse: false);
     }
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 // import 'package:auto_route/auto_route.dart';
 
-class Bledevices extends StatelessWidget {
+class BleDevices extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // return BlocProvider<BleCubit, BleState>(
