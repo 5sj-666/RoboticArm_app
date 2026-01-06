@@ -161,6 +161,13 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     }
 
     needScrollText(motionsName);
+    PanelController _pc = PanelController();
+
+    bool isPanelOpen() {
+      bool isOpened = _pc.isAttached && _pc.isPanelOpen;
+      print('isOpened: $isOpened');
+      return isOpened;
+    }
 
     return SlidingUpPanel(
       // color: Colors.black,
@@ -172,278 +179,293 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
       backdropEnabled: false,
       panelSnapping: true, //自动吸附效果
       onPanelSlide: (position) {},
+      controller: _pc,
+
       // 面板内容
-      panel: Padding(
-        padding: EdgeInsets.only(top: 30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Wrap(
-              children: [
-                for (int i = 0; i < _jointValues.length; i++)
-                  FractionallySizedBox(
-                    widthFactor: 0.5,
-                    child: JointSlider(
-                      title: '关节${i + 1}:',
-                      value: _jointValues[i],
-                      onValueChanged: _updateJointValue,
-                      index: i,
-                      min: i == 1 ? -130.0 : -145.0,
-                      max: i == 1 ? 130.0 : 145.0,
-                      onChangeEnd: _updateJointEnd,
-                    ),
-                  ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                FilledButton(
-                  onPressed: () {
-                    context.router.push(NamedRoute('OrderKeyframeRoute'));
-                  },
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(
-                      Colors.blue.shade300,
-                    ),
-                  ),
-                  child: const Text(
-                    '设计动作',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    print('保存为关键帧');
-                    saveDialog(context: context, jointsCubit: jointsCubit);
-                  },
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(
-                      Colors.blue.shade300,
-                    ),
-                  ),
-                  child: const Text(
-                    '保存为关键帧',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      // 面板顶部的滑块
-      collapsed: Container(
-        height: 60,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Center(
-          child: BlocBuilder<MotionsCubit, MotionsState>(
-            builder: (context, state) {
-              // motionsName =
-              //     state.currentMotion?.name ?? '-------这是个测试名称-------';
-              motionsName = state.currentMotion?.name ?? '';
-              needScrollText(motionsName);
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      // panel:
+      panelBuilder: (sc) => IgnorePointer(
+        ignoring: isPanelOpen(),
+        child: Padding(
+          padding: EdgeInsets.only(top: 30),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Wrap(
                 children: [
-                  BlocBuilder<BleCubit, BleState>(
-                    builder: (bleContext, state) {
-                      return Row(
-                        children: [
-                          if (state.status == BleStatus.unknow ||
-                              state.status == BleStatus.off ||
-                              state.status == BleStatus.on)
-                            IconButton(
-                              iconSize: 32,
-                              tooltip: '蓝牙',
-                              icon: bleCubit.state.isBleOn
-                                  ? const Icon(
-                                      Icons.bluetooth,
-                                      color: Colors.blue,
-                                    )
-                                  : const Icon(
-                                      Icons.bluetooth,
-                                      color: Colors.grey,
-                                    ),
-                              onPressed: () async {
-                                print('蓝牙');
-                                final result = await bleCubit.turnOn();
-                                // 请求打开蓝牙的permission
-                                SnackBar snackBar;
-                                if (result) {
-                                  snackBar = SnackBar(content: Text('打开蓝牙成功'));
-                                } else {
-                                  snackBar = SnackBar(
-                                    content: Text('打开失败，请去系统中打开蓝牙'),
-                                  );
-                                }
-
-                                ScaffoldMessenger.of(
-                                  // ignore: use_build_context_synchronously
-                                  context,
-                                ).showSnackBar(snackBar);
-                              },
-                            ),
-                          if (state.status == BleStatus.scan ||
-                              state.status == BleStatus.on ||
-                              state.status == BleStatus.scaned)
-                            ElevatedButton(
-                              onPressed: () {
-                                _showDialog(context);
-                                print('---点击扫描----');
-                                bleCubit.bleScan();
-                              },
-                              child: Text('扫描设备'),
-                            ),
-                          if (state.status == BleStatus.scaning)
-                            ElevatedButton(
-                              onPressed: () {
-                                print('---点击暂停扫描----');
-                                bleCubit.bleStopScan();
-                              },
-                              child: Text('扫描中'),
-                            ),
-
-                          if (state.status == BleStatus.connected ||
-                              state.status == BleStatus.connecting)
-                            ElevatedButton(
-                              onPressed: () {
-                                print('---已连接设备, 点击查看列表----');
-                                _showDialog(context);
-                              },
-                              child: Text(
-                                state.status == BleStatus.connected
-                                    ? '已连接'
-                                    : '连接中',
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("动作", style: TextStyle(color: Colors.grey)),
-                      SizedBox(height: 8),
-                      // BlocBuilder<MotionsCubit, MotionsState>(
-                      //   builder: (context, state) {
-                      //     motionsName =
-                      //         state.currentMotion?.name ?? '-------这是个测试名称-------';
-                      //     needScrollText(motionsName);
-                      //     return
-                      motionsNamePainter.width < 120
-                          ? Text(motionsName, textAlign: TextAlign.center)
-                          : SizedBox(
-                              width: 120, // 设置一个固定宽度
-                              child: SingleChildScrollView(
-                                controller: _scrollController,
-                                scrollDirection: Axis.horizontal, // 水平滚动
-                                child: Text(
-                                  motionsName,
-                                  // 禁止自动换行
-                                  softWrap: false,
-                                ),
-                              ),
-                            ),
-                      // },
-                      // ),
-                    ],
-                  ),
-                  if (state.status == MotionStatus.idle)
-                    OutlinedButton(
-                      onPressed: () {
-                        print('空闲,点击过渡到prepare');
-                        if (motionsName == '') {
-                          final snackBar = SnackBar(
-                            content: const Text("请选择一个动作"),
-                            duration: const Duration(seconds: 2),
-                            backgroundColor: Colors.red,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                        } else {
-                          motionsCubit.updateStatus(MotionStatus.prepare);
-                        }
-                      },
-                      child: Text('空闲'),
-                    )
-                  else if (state.status == MotionStatus.prepare)
-                    FilledButton(
-                      onPressed: () {
-                        print('准备,点击过渡到ready');
-                        motionsCubit.updateStatus(MotionStatus.preparing);
-                      },
-                      child: Text('准备'),
-                    )
-                  else if (state.status == MotionStatus.preparing)
-                    OutlinedButton(
-                      onPressed: () {
-                        print('准备中');
-                        // motionsCubit.updateStatus(MotionStatus.preparing);
-                      },
-                      child: Text('准备中'),
-                    )
-                  else if (state.status == MotionStatus.ready)
-                    FilledButton(
-                      onPressed: () {
-                        print('就绪,点击过渡到running');
-                        motionsCubit.updateStatus(MotionStatus.running);
-                      },
-                      child: Text('就绪'),
-                    )
-                  else if (state.status == MotionStatus.running)
-                    IconButton(
-                      iconSize: 32,
-                      icon: const Icon(Icons.pause, color: Colors.blue),
-                      tooltip: '运行中',
-                      onPressed: () {
-                        print('stop motion');
-                        // motionsCubit.updateState(false);
-                        motionsCubit.updateStatus(MotionStatus.paused);
-                      },
-                    )
-                  else if (state.status == MotionStatus.paused)
-                    IconButton(
-                      iconSize: 32,
-                      icon: const Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.blue,
+                  for (int i = 0; i < _jointValues.length; i++)
+                    FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: JointSlider(
+                        title: '关节${i + 1}:',
+                        value: _jointValues[i],
+                        onValueChanged: _updateJointValue,
+                        index: i,
+                        min: i == 1 ? -130.0 : -145.0,
+                        max: i == 1 ? 130.0 : 145.0,
+                        onChangeEnd: _updateJointEnd,
                       ),
-                      tooltip: '开始',
-                      onPressed: () {
-                        print('play motions');
-                        motionsCubit.updateStatus(MotionStatus.running);
-                      },
-                    )
-                  else if (state.status == MotionStatus.finished)
-                    OutlinedButton(
-                      onPressed: () {
-                        print('播放结束,点击过渡到idle');
-                        motionsCubit.updateStatus(MotionStatus.prepare);
-                      },
-                      child: Text('结束'),
                     ),
-                  TextButton(
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  FilledButton(
                     onPressed: () {
-                      print('使能');
-                      // bleCubit.sendEnableCmd();
-                      // bleCubit.sendEnableCmd();
+                      context.router.push(NamedRoute('OrderKeyframeRoute'));
                     },
-                    child: Text('使能'),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll<Color>(
+                        Colors.blue.shade300,
+                      ),
+                    ),
+                    child: const Text(
+                      '设计动作',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                  TextButton(
+                  FilledButton(
                     onPressed: () {
-                      print('日志');
-                      _showMotorLog(context);
+                      print('保存为关键帧');
+                      saveDialog(context: context, jointsCubit: jointsCubit);
                     },
-                    child: Text('日志'),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll<Color>(
+                        Colors.blue.shade300,
+                      ),
+                    ),
+                    child: const Text(
+                      '保存为关键帧',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
-              );
-            },
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      // 面板顶部的滑块
+      collapsed: IgnorePointer(
+        ignoring: isPanelOpen(),
+        child: Container(
+          height: 60,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            // color: Colors.blueGrey,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Center(
+            child: BlocBuilder<MotionsCubit, MotionsState>(
+              builder: (context, state) {
+                // motionsName =
+                //     state.currentMotion?.name ?? '-------这是个测试名称-------';
+                motionsName = state.currentMotion?.name ?? '';
+                needScrollText(motionsName);
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    BlocBuilder<BleCubit, BleState>(
+                      builder: (bleContext, state) {
+                        return Row(
+                          children: [
+                            if (state.status == BleStatus.unknow ||
+                                state.status == BleStatus.off ||
+                                state.status == BleStatus.on)
+                              IconButton(
+                                iconSize: 32,
+                                tooltip: '蓝牙',
+                                icon: bleCubit.state.isBleOn
+                                    ? const Icon(
+                                        Icons.bluetooth,
+                                        color: Colors.blue,
+                                      )
+                                    : const Icon(
+                                        Icons.bluetooth,
+                                        color: Colors.grey,
+                                      ),
+                                onPressed: () async {
+                                  print('蓝牙');
+                                  final result = await bleCubit.turnOn();
+                                  // 请求打开蓝牙的permission
+                                  SnackBar snackBar;
+                                  if (result) {
+                                    snackBar = SnackBar(
+                                      content: Text('打开蓝牙成功'),
+                                    );
+                                  } else {
+                                    snackBar = SnackBar(
+                                      content: Text('打开失败，请去系统中打开蓝牙'),
+                                    );
+                                  }
+
+                                  ScaffoldMessenger.of(
+                                    // ignore: use_build_context_synchronously
+                                    context,
+                                  ).showSnackBar(snackBar);
+                                },
+                              ),
+                            if (state.status == BleStatus.scan ||
+                                state.status == BleStatus.on ||
+                                state.status == BleStatus.scaned)
+                              ElevatedButton(
+                                onPressed: () {
+                                  _showDialog(context);
+                                  print('---点击扫描----');
+                                  bleCubit.bleScan();
+                                },
+                                child: Text('扫描设备'),
+                              ),
+                            if (state.status == BleStatus.scaning)
+                              ElevatedButton(
+                                onPressed: () {
+                                  print('---点击暂停扫描----');
+                                  bleCubit.bleStopScan();
+                                },
+                                child: Text('扫描中'),
+                              ),
+
+                            if (state.status == BleStatus.connected ||
+                                state.status == BleStatus.connecting)
+                              ElevatedButton(
+                                onPressed: () {
+                                  print('---已连接设备, 点击查看列表----');
+                                  _showDialog(context);
+                                },
+                                child: Text(
+                                  state.status == BleStatus.connected
+                                      ? '已连接'
+                                      : '连接中',
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("动作", style: TextStyle(color: Colors.grey)),
+                        SizedBox(height: 8),
+                        // BlocBuilder<MotionsCubit, MotionsState>(
+                        //   builder: (context, state) {
+                        //     motionsName =
+                        //         state.currentMotion?.name ?? '-------这是个测试名称-------';
+                        //     needScrollText(motionsName);
+                        //     return
+                        motionsNamePainter.width < 120
+                            ? Text(motionsName, textAlign: TextAlign.center)
+                            : SizedBox(
+                                width: 120, // 设置一个固定宽度
+                                child: SingleChildScrollView(
+                                  controller: _scrollController,
+                                  scrollDirection: Axis.horizontal, // 水平滚动
+                                  child: Text(
+                                    motionsName,
+                                    // 禁止自动换行
+                                    softWrap: false,
+                                  ),
+                                ),
+                              ),
+                        // },
+                        // ),
+                      ],
+                    ),
+                    if (state.status == MotionStatus.idle)
+                      OutlinedButton(
+                        onPressed: () {
+                          print('空闲,点击过渡到prepare');
+                          if (motionsName == '') {
+                            final snackBar = SnackBar(
+                              content: const Text("请选择一个动作"),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.red,
+                            );
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(snackBar);
+                          } else {
+                            motionsCubit.updateStatus(MotionStatus.prepare);
+                          }
+                        },
+                        child: Text('空闲'),
+                      )
+                    else if (state.status == MotionStatus.prepare)
+                      FilledButton(
+                        onPressed: () {
+                          print('准备,点击过渡到ready');
+                          motionsCubit.updateStatus(MotionStatus.preparing);
+                        },
+                        child: Text('准备'),
+                      )
+                    else if (state.status == MotionStatus.preparing)
+                      OutlinedButton(
+                        onPressed: () {
+                          print('准备中');
+                          // motionsCubit.updateStatus(MotionStatus.preparing);
+                        },
+                        child: Text('准备中'),
+                      )
+                    else if (state.status == MotionStatus.ready)
+                      FilledButton(
+                        onPressed: () {
+                          print('就绪,点击过渡到running');
+                          motionsCubit.updateStatus(MotionStatus.running);
+                        },
+                        child: Text('就绪'),
+                      )
+                    else if (state.status == MotionStatus.running)
+                      IconButton(
+                        iconSize: 32,
+                        icon: const Icon(Icons.pause, color: Colors.blue),
+                        tooltip: '运行中',
+                        onPressed: () {
+                          print('stop motion');
+                          // motionsCubit.updateState(false);
+                          motionsCubit.updateStatus(MotionStatus.paused);
+                        },
+                      )
+                    else if (state.status == MotionStatus.paused)
+                      IconButton(
+                        iconSize: 32,
+                        icon: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.blue,
+                        ),
+                        tooltip: '开始',
+                        onPressed: () {
+                          print('play motions');
+                          motionsCubit.updateStatus(MotionStatus.running);
+                        },
+                      )
+                    else if (state.status == MotionStatus.finished)
+                      OutlinedButton(
+                        onPressed: () {
+                          print('播放结束,点击过渡到idle');
+                          motionsCubit.updateStatus(MotionStatus.prepare);
+                        },
+                        child: Text('结束'),
+                      ),
+                    TextButton(
+                      onPressed: () {
+                        print('使能');
+                        // bleCubit.sendEnableCmd();
+                        // bleCubit.sendEnableCmd();
+                      },
+                      child: Text('使能'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        print('日志');
+                        _showMotorLog(context);
+                      },
+                      child: Text('日志'),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
