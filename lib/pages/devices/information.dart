@@ -17,6 +17,8 @@ import 'dart:ui' as ui;
 import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
 
+import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
+
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
 
@@ -574,6 +576,7 @@ Future<void> _showDialog(context) async {
 }
 
 Future<void> _showMotorLog(context) async {
+  final motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
   return showDialog<void>(
     animationStyle: AnimationStyle(),
     context: context,
@@ -587,6 +590,12 @@ Future<void> _showMotorLog(context) async {
           child: MotorLogPage(),
         ),
         actions: [
+          TextButton(
+            child: const Text('清空'),
+            onPressed: () {
+              motorLogCubit.clearLog();
+            },
+          ),
           TextButton(
             child: const Text('关闭'),
             onPressed: () => Navigator.pop(context),

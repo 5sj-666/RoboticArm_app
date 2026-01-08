@@ -48,4 +48,8 @@ class MotorLogCubit extends Cubit<MotorLogState> {
     final updatedList = List<MotorLog>.from(state.list)..add(msg);
     emit(MotorLogState(list: updatedList));
   }
+
+  void clearLog() {
+    emit(MotorLogState(list: []));
+  }
 }
