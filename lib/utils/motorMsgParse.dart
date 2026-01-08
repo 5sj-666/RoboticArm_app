@@ -230,16 +230,20 @@ Map<String, dynamic> msg18(List<int> cmd, Map<String, dynamic> headerObj) {
 
   // 位置模式角度解析 0X7016
   if (writeType == 0x7016) {
-    final List<int> locRef = cmdData.sublist(4, 8).reversed.toList();
-    final double angle =
-        convert32BitFloatTo64BitNumber(locRef) / 3.1415926 * 180;
+    List<int> locRef = cmdData.sublist(4, 8).reversed.toList();
+    String angleStr = (convert32BitFloatTo64BitNumber(locRef) / 3.1415926 * 180)
+        .toStringAsFixed(4);
+    double angle = double.parse(angleStr);
     parseStr = "①⑧更改$canId电机的位置模式角度为$angle°";
   }
 
   // 速度限制解析 0X7017
   if (writeType == 0x7017) {
     final List<int> limitSpd = cmdData.sublist(4, 8).reversed.toList();
-    final double speed = convert32BitFloatTo64BitNumber(limitSpd);
+    String speedStr = convert32BitFloatTo64BitNumber(
+      limitSpd,
+    ).toStringAsFixed(4);
+    double speed = double.parse(speedStr);
     parseStr = "①⑧更改$canId电机的位置模式速度限制为$speed";
   }
 
@@ -259,7 +263,7 @@ double convert32BitFloatTo64BitNumber(List<int> binaryData) {
   final Uint8List buffer = Uint8List(4);
   // 循环写入二进制数据
   for (int i = 0; i < 4; i++) {
-    buffer[i] = binaryData[i];
+    buffer[3 - i] = binaryData[i];
   }
   // 读取32位单精度浮点数，并自动转为64位浮点数
   final Float32List float32View = Float32List.view(buffer.buffer);
