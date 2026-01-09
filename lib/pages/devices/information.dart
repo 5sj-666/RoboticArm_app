@@ -16,6 +16,7 @@ import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
+import 'package:robotic_arm_app/components/MotionStatusBtn.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -37,10 +38,9 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   late Timer _timer;
   late TextPainter motionsNamePainter;
 
-
   void _updateJointValue(double newVal, int index) {
     print('_updateJointValue: newval: $newVal ,index$index');
-  
+
     Future.delayed(const Duration(seconds: 0), () {
       jointsCubit.setSingleJoint('joint${index + 1}', newVal);
       print('Information Page 关节$index: ${jointsCubit.state}');
@@ -350,6 +350,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
+                        MotionStatusBtn(),
                         ElevatedButton(
                           onPressed: () {
                             motionsCubit.clearCurMotion();
@@ -496,81 +497,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                         // ),
                       ],
                     ),
-                    if (state.status == MotionStatus.idle)
-                      OutlinedButton(
-                        onPressed: () {
-                          print('空闲,点击过渡到prepare');
-                          if (motionsName == '') {
-                            final snackBar = SnackBar(
-                              content: const Text("请选择一个动作"),
-                              duration: const Duration(seconds: 2),
-                              backgroundColor: Colors.red,
-                            );
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(snackBar);
-                          } else {
-                            motionsCubit.updateStatus(MotionStatus.prepare);
-                          }
-                        },
-                        child: Text('空闲'),
-                      )
-                    else if (state.status == MotionStatus.prepare)
-                      FilledButton(
-                        onPressed: () {
-                          print('准备,点击过渡到ready');
-                          motionsCubit.updateStatus(MotionStatus.preparing);
-                        },
-                        child: Text('准备'),
-                      )
-                    else if (state.status == MotionStatus.preparing)
-                      OutlinedButton(
-                        onPressed: () {
-                          print('准备中');
-                          // motionsCubit.updateStatus(MotionStatus.preparing);
-                        },
-                        child: Text('准备中'),
-                      )
-                    else if (state.status == MotionStatus.ready)
-                      FilledButton(
-                        onPressed: () {
-                          print('就绪,点击过渡到running');
-                          motionsCubit.updateStatus(MotionStatus.running);
-                        },
-                        child: Text('就绪'),
-                      )
-                    else if (state.status == MotionStatus.running)
-                      IconButton(
-                        iconSize: 32,
-                        icon: const Icon(Icons.pause, color: Colors.blue),
-                        tooltip: '运行中',
-                        onPressed: () {
-                          print('stop motion');
-                          // motionsCubit.updateState(false);
-                          motionsCubit.updateStatus(MotionStatus.paused);
-                        },
-                      )
-                    else if (state.status == MotionStatus.paused)
-                      IconButton(
-                        iconSize: 32,
-                        icon: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Colors.blue,
-                        ),
-                        tooltip: '开始',
-                        onPressed: () {
-                          print('play motions');
-                          motionsCubit.updateStatus(MotionStatus.running);
-                        },
-                      )
-                    else if (state.status == MotionStatus.finished)
-                      OutlinedButton(
-                        onPressed: () {
-                          print('播放结束,点击过渡到idle');
-                          motionsCubit.updateStatus(MotionStatus.prepare);
-                        },
-                        child: Text('结束'),
-                      ),
+                    MotionStatusBtn(),
                     TextButton(
                       onPressed: () {
                         print('使能');
