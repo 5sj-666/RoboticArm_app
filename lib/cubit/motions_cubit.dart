@@ -76,6 +76,23 @@ class MotionsState {
       // elapsedTime: elapsedTime ?? this.elapsedTime,
     );
   }
+
+  // 待优化
+  MotionsState clearCurMotion({
+    List<Motion>? motions,
+    Motion? currentMotion,
+    bool? runing,
+    bool? firstRun,
+    MotionStatus? status,
+  }) {
+    return MotionsState(
+      motions: motions ?? this.motions,
+      currentMotion: null,
+      runing: runing ?? this.runing,
+      firstRun: firstRun ?? this.firstRun,
+      status: MotionStatus.idle,
+    );
+  }
 }
 
 class MotionsCubit extends Cubit<MotionsState> {
@@ -128,6 +145,10 @@ class MotionsCubit extends Cubit<MotionsState> {
       print('motions cubit: error $error');
       return false;
     }
+  }
+
+  void clearCurMotion() {
+    emit(state.clearCurMotion());
   }
 
   bool updateState(bool runing) {

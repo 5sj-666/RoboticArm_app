@@ -10,6 +10,7 @@ class JointSlider extends StatelessWidget {
   final int index;
   final double min;
   final double max;
+  final bool disable;
 
   const JointSlider({
     super.key,
@@ -20,6 +21,7 @@ class JointSlider extends StatelessWidget {
     this.min = -135.0,
     this.max = 135.0,
     this.onChangeEnd,
+    this.disable = false,
   });
 
   @override
@@ -57,14 +59,18 @@ class JointSlider extends StatelessWidget {
           max: max,
           activeColor: Colors.blue,
           value: value,
-          onChanged: (double newVal) {
-            onValueChanged(newVal, index);
-          },
-          onChangeEnd: (double newVal) {
-            if (onChangeEnd != null) {
-              onChangeEnd!(newVal, index);
-            }
-          },
+          onChanged: disable
+              ? null
+              : (double newVal) {
+                  onValueChanged(newVal, index);
+                },
+          onChangeEnd: disable
+              ? null
+              : (double newVal) {
+                  if (onChangeEnd != null) {
+                    onChangeEnd!(newVal, index);
+                  }
+                },
         ),
       ],
     );
