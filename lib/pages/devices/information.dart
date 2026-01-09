@@ -17,8 +17,6 @@ import 'dart:ui' as ui;
 import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
 
-import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
-
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
 
@@ -39,14 +37,10 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   late Timer _timer;
   late TextPainter motionsNamePainter;
 
-  // const List<String> jointNameMap = [joint];
 
-  final List<double> _jointValues = List.filled(6, 0.0);
   void _updateJointValue(double newVal, int index) {
     print('_updateJointValue: newval: $newVal ,index$index');
-    setState(() {
-      _jointValues[index] = newVal;
-    });
+  
     Future.delayed(const Duration(seconds: 0), () {
       jointsCubit.setSingleJoint('joint${index + 1}', newVal);
       print('Information Page 关节$index: ${jointsCubit.state}');
@@ -54,7 +48,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   }
 
   void _updateJointEnd(double newVal, int index) {
-    print('---关节变化结束---');
+    print('---关节变化结束---$newVal --- $index');
 
     /// 将速度指令和位置指令发送给单片机
     final motorCmd = MotorCmdGenerator();
@@ -62,22 +56,24 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     bleCubit.sendSingleCmd(enableCmd);
     motorLogCubit.addLog(cmd: enableCmd);
 
+    int motorId = 21 + index;
+
     final runmodeCmd = motorCmd.generateCMD('run_mode', {
-      'motorId': 21,
+      'motorId': motorId,
       'run_mode': 1,
     });
     bleCubit.sendSingleCmd(runmodeCmd);
     motorLogCubit.addLog(cmd: runmodeCmd);
 
     final speedCmd = motorCmd.generateCMD('limit_spd', {
-      'motorId': 21,
+      'motorId': motorId,
       'limit_spd': 2.0,
     });
     bleCubit.sendSingleCmd(speedCmd);
     motorLogCubit.addLog(cmd: speedCmd);
 
     final locationCmd = motorCmd.generateCMD('loc_ref', {
-      'motorId': 21 + index,
+      'motorId': motorId,
       'loc_ref': newVal / 180 * 3.14,
     });
     bleCubit.sendSingleCmd(locationCmd);
@@ -187,64 +183,190 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
       // panel:
       panelBuilder: (sc) => IgnorePointer(
         ignoring: isPanelOpen(),
-        child: Padding(
-          padding: EdgeInsets.only(top: 30),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Wrap(
+        child: BlocBuilder<MotionsCubit, MotionsState>(
+          builder: (context, motionState) {
+            return Padding(
+              padding: EdgeInsets.only(top: 30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  for (int i = 0; i < _jointValues.length; i++)
-                    FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: JointSlider(
-                        title: '关节${i + 1}:',
-                        value: _jointValues[i],
-                        onValueChanged: _updateJointValue,
-                        index: i,
-                        min: i == 1 ? -130.0 : -145.0,
-                        max: i == 1 ? 130.0 : 145.0,
-                        onChangeEnd: _updateJointEnd,
-                      ),
+                  BlocBuilder<JointsCubit, JointsState>(
+                    builder: (context, state) {
+                      return Wrap(
+                        children: [
+                          // for (int i = 0; i < 6; i++)
+                          //   FractionallySizedBox(
+                          //     widthFactor: 0.5,
+                          //     child: JointSlider(
+                          //       title: '关节${i + 1}:',
+                          //       // value: _jointValues[i],
+                          //       value: jointsCubit.getSingleJoint(i),
+                          //       onValueChanged: _updateJointValue,
+                          //       index: i,
+                          //       min: i == 1 ? -130.0 : -145.0,
+                          //       max: i == 1 ? 130.0 : 145.0,
+                          //       onChangeEnd: _updateJointEnd,
+                          //     ),
+                          //   ),
+                          // 等待优化
+                          FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: JointSlider(
+                              title: '关节1:',
+                              value: state.joint1,
+                              onValueChanged: _updateJointValue,
+                              index: 0,
+                              min: -145.0,
+                              max: 145.0,
+                              onChangeEnd: _updateJointEnd,
+                              disable:
+                                  motionsCubit.state.status !=
+                                  MotionStatus.idle,
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: JointSlider(
+                              title: '关节2:',
+                              // value: _jointValues[i],
+                              value: state.joint2,
+                              onValueChanged: _updateJointValue,
+                              index: 1,
+                              min: -100.0,
+                              max: 100.0,
+                              onChangeEnd: _updateJointEnd,
+                              disable:
+                                  motionsCubit.state.status !=
+                                  MotionStatus.idle,
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: JointSlider(
+                              title: '关节3:',
+                              value: state.joint3,
+                              onValueChanged: _updateJointValue,
+                              index: 2,
+                              min: -145.0,
+                              max: 145.0,
+                              onChangeEnd: _updateJointEnd,
+                              disable:
+                                  motionsCubit.state.status !=
+                                  MotionStatus.idle,
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: JointSlider(
+                              title: '关节4:',
+                              value: state.joint4,
+                              onValueChanged: _updateJointValue,
+                              index: 3,
+                              min: -145.0,
+                              max: 145.0,
+                              onChangeEnd: _updateJointEnd,
+                              disable:
+                                  motionsCubit.state.status !=
+                                  MotionStatus.idle,
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: JointSlider(
+                              title: '关节5:',
+                              value: state.joint5,
+                              onValueChanged: _updateJointValue,
+                              index: 4,
+                              min: -145.0,
+                              max: 145.0,
+                              onChangeEnd: _updateJointEnd,
+                              disable:
+                                  motionsCubit.state.status !=
+                                  MotionStatus.idle,
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: JointSlider(
+                              title: '关节6:',
+                              value: state.joint6,
+                              onValueChanged: _updateJointValue,
+                              index: 5,
+                              min: -145.0,
+                              max: 145.0,
+                              onChangeEnd: _updateJointEnd,
+                              disable:
+                                  motionsCubit.state.status !=
+                                  MotionStatus.idle,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  if (motionsCubit.state.status == MotionStatus.idle)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        FilledButton(
+                          onPressed: () {
+                            context.router.push(
+                              NamedRoute('OrderKeyframeRoute'),
+                            );
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll<Color>(
+                              Colors.blue.shade300,
+                            ),
+                          ),
+                          child: const Text(
+                            '设计动作',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            print('保存为关键帧');
+                            saveDialog(
+                              context: context,
+                              jointsCubit: jointsCubit,
+                            );
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll<Color>(
+                              Colors.blue.shade300,
+                            ),
+                          ),
+                          child: const Text(
+                            '保存为关键帧',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        ElevatedButton(onPressed: () {}, child: Text('使能')),
+                        ElevatedButton(onPressed: () {}, child: Text('置零')),
+                      ],
+                    ),
+                  if (motionsCubit.state.status != MotionStatus.idle)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            motionsCubit.clearCurMotion();
+                            print(
+                              '--卸载动作---${motionsCubit.state.currentMotion}',
+                            );
+                            // motionsCubit.state.status
+                          },
+                          child: Text('卸载动作'),
+                        ),
+                        // ElevatedButton(onPressed: () {}, child: Text('卸载动作')),
+                      ],
                     ),
                 ],
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  FilledButton(
-                    onPressed: () {
-                      context.router.push(NamedRoute('OrderKeyframeRoute'));
-                    },
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll<Color>(
-                        Colors.blue.shade300,
-                      ),
-                    ),
-                    child: const Text(
-                      '设计动作',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: () {
-                      print('保存为关键帧');
-                      saveDialog(context: context, jointsCubit: jointsCubit);
-                    },
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll<Color>(
-                        Colors.blue.shade300,
-                      ),
-                    ),
-                    child: const Text(
-                      '保存为关键帧',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
 
@@ -533,7 +655,7 @@ Future<void> saveDialog({
 
 /// 根据关节的位置信息生成关键帧
 /// 便利关节位置信息，
-Keyframe generateKeyframe(Joints positions, String inputName) {
+Keyframe generateKeyframe(JointsState positions, String inputName) {
   final positionMap = positions.toJson();
 
   final keyframe = Keyframe(
