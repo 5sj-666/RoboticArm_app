@@ -192,7 +192,13 @@ class FlutterGameState extends State<ArmPage> {
           for (int i = 0; i < rt.curKeyframe!.children.length; i++) {
             rt.deltaDeg[i] =
                 rt.curKeyframe!.children[i].location - preparingInitPosition[i];
+
+            // 因为是初始化，所以将匀速位置和速度直接发送给单片机
+            rt.result[i * 2] =
+                rt.curKeyframe!.children[i].location / 180 * math.pi;
+            rt.result[i * 2 + 1] = 2.0;
           }
+          bleCubit.sendMsg(rt.result);
           print('---准备动作中，目标位置差值: ${rt.deltaDeg}');
           print('-- currentPositions $preparingInitPosition');
 
