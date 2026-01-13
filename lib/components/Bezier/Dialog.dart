@@ -15,8 +15,8 @@ class SetBezier extends StatefulWidget {
 
 class _SetBezierState extends State<SetBezier> {
   // fianl
-  String selectedTimingFunc = 'linear';
-  String initTimeFunc = 'linear';
+  String selectedTimingFunc = '0.2,0.2, .5,.5';
+  String initTimeFunc = '0.2,0.2, .5,.5';
 
   final List<String> preset = ['linear', 'ease-in', 'ease-out', 'ease-in-out'];
   final List<List<Color>> presetColor = [

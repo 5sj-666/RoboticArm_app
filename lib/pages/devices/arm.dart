@@ -10,8 +10,6 @@ import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'dart:typed_data';
-// import 'package:robotic_arm_app/utils/motorCmd.dart';
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -48,26 +46,6 @@ class FlutterGameState extends State<ArmPage> {
     bleCubit = BlocProvider.of<BleCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
-
-    // jointsCubit = BlocProvider.of<JointsCubit>(context);
-
-    // 初始化关节cubit
-    // jointsCubit = JointsCubit();
-    // Future.delayed(const Duration(seconds: 5), () {
-    //   jointsCubit.setSingleJoint('joint1', 100.0);
-    // });
-    // Future.delayed(const Duration(seconds: 10), () {
-    //   jointsCubit.setJoints(Joints(
-    //       joint1: 45.0,
-    //       joint2: 30.0,
-    //       joint3: 15.0,
-    //       joint4: 60.0,
-    //       joint5: 90.0));
-    // });
-    // print('当前关节6: ${jointsCubit.state.joint6}');
-    // jointsCubit.stream.listen((joints) {
-    //   print('当前j1值: ${joints.joint1}');
-    // });
   }
 
   @override
@@ -113,22 +91,7 @@ class FlutterGameState extends State<ArmPage> {
   int stepsPerFrame = 5;
   three.Joystick? joystick; // 手柄
 
-  // initScene() {
-  //   this.scene = new THREE.Scene()
-  //   // this.scene.background = new THREE.Color(0xa0a0a0);
-  //   this.scene.add( new THREE.GridHelper( 5, 10, 0x888888, 0x444444 ) );
-  //   // this.scene.fog = new THREE.Fog(0x000000, 0, 10000) // 添加雾的效果
-  // }
-
   Future<void> setup() async {
-    // joystick = threeJs.width < 850
-    //     ? three.Joystick(
-    //         size: 150,
-    //         margin: const EdgeInsets.only(left: 35, bottom: 35),
-    //         screenSize: Size(threeJs.width, threeJs.height),
-    //         listenableKey: threeJs.globalKey)
-    //     : null;
-
     threeJs.camera = three.PerspectiveCamera(
       45,
       threeJs.width / threeJs.height,
@@ -163,9 +126,6 @@ class FlutterGameState extends State<ArmPage> {
     );
     orbitControle.update();
 
-    // addGltfAsset('cybergearmotor.stp.glb', 'cyber_gear');
-
-    // final zero = await addGltfAsset('zero.glb', 'zero');
     await addGltfAsset('zero.glb', 'zero');
     var oneWrapper = three.Object3D();
     oneWrapper.position.x = 0.5;
@@ -212,53 +172,8 @@ class FlutterGameState extends State<ArmPage> {
     // fiveWrapper.add(new THREE.AxesHelper(2));
     var five = await addGltfAsset('five.glb', 'five');
 
-    // // 获取当前位置
-    // var joints = jointsCubit.state;
-    // // 获取当前动作关键帧
-    // final currentMotion = motionsCubit.state.currentMotion;
-
-    // // 获取当前关键帧
-    // var len = currentMotion.children.length;
-    // print('--初始化len: $len');
-    // var kryframeList = currentMotion.children;
-
-    // double elapsedTime = 0.0;
-    // // ignore: unused_local_variable
-    // Keyframe preKeyframe = Keyframe(
-    //   name: '',
-    //   timingFunction: '',
-    //   time: 0,
-    //   children: [],
-    // );
-    // Keyframe keyframe = Keyframe(
-    //   name: '',
-    //   timingFunction: '',
-    //   time: 0,
-    //   children: [],
-    // );
-    // // 各个关键的偏差数据
-    // // ignore: unused_local_variable
-    // List<double> deltaDeg = [
-    //   joints.joint1,
-    //   joints.joint2,
-    //   joints.joint3,
-    //   joints.joint4,
-    //   joints.joint5,
-    //   joints.joint6,
-    // ];
-    // int deltaTime = 0;
-
     // 类似web的requestAniamtionFrame
     threeJs.addAnimationEvent((dt) {
-      // oneWrapper.rotation.y += 0.1;
-      // print('---执行动画');
-      // jointsCubit.state.joint1 += 0.1;
-      // jointsCubit.setSingleJoint('joint1', jointsCubit.state.joint1 + 0.1);
-
-      // threeJs.renderer?.render(threeJs.scene, threeJs.camera);
-      // 渲染场景
-      // threeJs.renderer!.render(threeJs.scene, threeJs.camera);
-
       //这里添加动画效果
       if (motionsCubit.state.status == MotionStatus.preparing) {
         print('---准备动作中');
@@ -321,17 +236,17 @@ class FlutterGameState extends State<ArmPage> {
               double t =
                   ((rt.elapsedTime * 1000).toInt() - rt.preKeyframe!.time) /
                   (rt.curKeyframe!.time - rt.preKeyframe!.time);
-              double? ratio = bezierXToY(t, [.2, .2], [.5, .5]);
-              // double? ratio = calculateBezierY(
-              //     (rt.elapsedTime - rt.preKeyframe!.time) /
-              //       (rt.curKeyframe!.time - rt.preKeyframe!.time),
-              //   [.2, .2],[.5, .5]);
-              // ratio = ratio;
+
+              List<double> cp = timingFuncToDoubleList(
+                rt.curKeyframe!.timingFunction,
+              );
+
+              double? ratio = bezierXToY(t, [cp[0], cp[1]], [cp[2], cp[3]]);
+
               print('t: $t ratio: $ratio');
 
               var jointsFrame = rt.curKeyframe?.children ?? [];
               for (int j = 0; j < jointsFrame.length; j++) {
-                // print('j$j');
                 rt.deltaDeg[j] =
                     rt.curKeyframe!.children[j].location -
                     rt.preKeyframe!.children[j].location;
@@ -340,14 +255,15 @@ class FlutterGameState extends State<ArmPage> {
                     rt.deltaDeg[j] * ratio +
                     rt.preKeyframe!.children[j].location;
                 jointsCubit.setSingleJoint('joint${j + 1}', deg);
-                // 单片机需要 i *2 是位置， i* 2 + 1是速度
-                rt.result[j * 2] = deg / 180 * math.pi;
-                // delta距离 / delta时间 = 速度
+                // 单片机需要 i *2 是位置， i* 2 + 1是速度 边界值为0 ～ 15
+                rt.result[j * 2] = (deg / 180 * math.pi).clamp(0.0, 15.0);
+                // delta距离 / delta时间 = 速度 边界值为-145和145
                 rt.result[j * 2 + 1] =
-                    (rt.deltaDeg[j] * ratio - rt.deltaDeg[j] * rt.preRatio) /
-                    dt /
-                    180 *
-                    math.pi;
+                    ((rt.deltaDeg[j] * ratio - rt.deltaDeg[j] * rt.preRatio) /
+                            dt /
+                            180 *
+                            math.pi)
+                        .clamp(-145.0, 145.0);
 
                 print(
                   '距离差额比例: ${ratio - rt.preRatio} 距离差额$deg, 时间差额: $dt, 历经时间${rt.elapsedTime}',
@@ -361,30 +277,13 @@ class FlutterGameState extends State<ArmPage> {
             }
           }
           if (i == rt.len) {
-            // motionsCubit.updateState(false);
-            // motionsCubit.updateStatus(MotionStatus.finished);
             motionsCubit.updateStatus(MotionStatus.prepare);
             rt.elapsedTime = 0;
           }
 
           print(
-            '当前关键帧 ${(rt.elapsedTime * 1000).toInt()} : ${rt.curKeyframe?.name}',
+            '当前关键帧 ${(rt.elapsedTime * 1000).toInt()} : ${rt.curKeyframe?.name}, i: $i',
           );
-
-          /// 应该需要准备动作：移动到第一帧，之后才可以运行动作。  预备动作，最后开发
-          ///
-          /// 执行动画需要两个帧：开始帧（preFrame）和结束帧（当前要移动到的帧curFrame）
-          // preKeyframe keyframe
-          /// 计算出差值，
-          ///
-          /// 计算当前当前时间的位置
-
-          // jointsCubit.state.toJson().forEach((name, value) {
-          //   jointsCubit.state[name]
-          // });
-          // for(int z = 0; z < jointsCubit.state) {
-
-          // }
         }
       } else {
         if (motionsCubit.state.status == MotionStatus.prepare ||
@@ -393,11 +292,6 @@ class FlutterGameState extends State<ArmPage> {
         }
       }
     });
-
-    // /// 经过三次贝塞尔曲线计算的位置
-    // void computedPositionByCubicBezier() {
-
-    // }
 
     // 启用抗锯齿
     try {
@@ -479,8 +373,6 @@ class FlutterGameState extends State<ArmPage> {
         math.pi / 180 * 270,
         math.pi / 180 * 90,
       );
-      // let oneDegree = math.pi / 180;
-      // gltf.scene.rotation(oneDegree * 0, oneDegree * 90, oneDegree * 270);
     }
   }
 }
@@ -530,4 +422,22 @@ class RunTimeWorkSpace {
     deltaDeg = List<double>.filled(6, 0.0);
     result = List<double>.filled(12, 0.0);
   }
+}
+
+/// 将缓动函数（如 '.2,.2,.5,.5'）转为 List<double> [.2,.2,.5,.5]
+List<double> timingFuncToDoubleList(String? input) {
+  // 1. 边界处理：空字符串直接返回匀速
+  if (input == null || input.isEmpty) return [.2, .2, .5, .5];
+
+  // 2. 按逗号拆分字符串 → 遍历处理每个子项
+  return input.split(',').map((String item) {
+    // 3. 去除子项前后空格（处理 '.2, .2, .5' 这种带空格的场景）
+    String trimmedItem = item.trim();
+
+    // 4. 尝试将字符串转为 double（处理无效数值）
+    double? numValue = double.tryParse(trimmedItem);
+
+    // 5. 无效数值返回 0.0（也可根据业务需求返回 null 再过滤）
+    return numValue ?? 0.0;
+  }).toList();
 }
