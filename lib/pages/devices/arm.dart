@@ -225,7 +225,7 @@ class FlutterGameState extends State<ArmPage> {
           rt.elapsedTime = 0.0;
         }
       } else if (motionsCubit.state.status == MotionStatus.running) {
-        print('---运行动画${rt.len}');
+        // print('---运行动画${rt.len}');
         // print('dt: $dt, ${(elapsedTime * 1000).toInt()}');
         rt.elapsedTime += dt;
 
@@ -242,6 +242,8 @@ class FlutterGameState extends State<ArmPage> {
               double t =
                   ((rt.elapsedTime * 1000).toInt() - rt.preKeyframe!.time) /
                   (rt.curKeyframe!.time - rt.preKeyframe!.time);
+              // t取值0-1
+              t = t.clamp(0, 1);
 
               List<double> cp = timingFuncToDoubleList(
                 rt.curKeyframe!.timingFunction,
@@ -249,7 +251,7 @@ class FlutterGameState extends State<ArmPage> {
 
               double? ratio = bezierXToY(t, [cp[0], cp[1]], [cp[2], cp[3]]);
 
-              print('t: $t ratio: $ratio');
+              // print('t: $t ratio: $ratio');
 
               var jointsFrame = rt.curKeyframe?.children ?? [];
               for (int j = 0; j < jointsFrame.length; j++) {
@@ -261,35 +263,50 @@ class FlutterGameState extends State<ArmPage> {
                     rt.deltaDeg[j] * ratio +
                     rt.preKeyframe!.children[j].location;
                 jointsCubit.setSingleJoint('joint${j + 1}', deg);
-                // 单片机需要 i *2 是位置， i* 2 + 1是速度 边界值为0 ～ 15
-                rt.result[j * 2] = (deg / 180 * math.pi).clamp(0.0, 15.0);
-                // delta距离 / delta时间 = 速度 边界值为-145和145
+                //位置： 单片机需要 i *2 是位置，  边界值为-145.0, 145.0
+                rt.result[j * 2] = (deg / 180 * math.pi).clamp(-145.0, 145.0);
+                //速度： delta距离 / delta时间 = 速度 边界值为0.0, 15.0
                 rt.result[j * 2 + 1] =
                     ((rt.deltaDeg[j] * ratio - rt.deltaDeg[j] * rt.preRatio) /
                             dt /
                             180 *
                             math.pi)
-                        .clamp(-145.0, 145.0);
+                        .clamp(-15.0, 15.0);
 
-                print(
-                  '距离差额比例: ${ratio - rt.preRatio} 距离差额$deg, 时间差额: $dt, 历经时间${rt.elapsedTime}',
-                );
+                // print(
+                //   '距离差额比例: ${ratio - rt.preRatio} 距离差额$deg, 时间差额: $dt, 历经时间${rt.elapsedTime}',
+                // );
               }
               rt.preRatio = ratio;
 
-              print('deltaTime: ${rt.deltaTime} ${rt.result}');
-              bleCubit.sendMsg(rt.result);
+              print("rt.result: ${rt.curSize}, --- ${rt.result}");
+              rt.results.add(List.from(rt.result));
+              rt.curSize += 1;
+              if (rt.curSize == rt.windowSize) {
+                combinPostion(rt.results, bleCubit);
+                rt.results.clear();
+                rt.curSize = 0;
+                print('rt.results长度: ${rt.results.length}');
+              }
+
+              // print('deltaTime: ${rt.deltaTime} ${rt.result}');
+              // bleCubit.sendMsg(rt.result);
               break;
             }
           }
           if (i == rt.len) {
+            // 最后一帧，将剩余的指令直接整合并发送
+            combinPostion(rt.results, bleCubit);
+            rt.results.clear();
+            rt.curSize = 0;
+
             motionsCubit.updateStatus(MotionStatus.prepare);
             rt.elapsedTime = 0;
           }
 
-          print(
-            '当前关键帧 ${(rt.elapsedTime * 1000).toInt()} : ${rt.curKeyframe?.name}, i: $i',
-          );
+          // print(
+          //   '当前关键帧 ${(rt.elapsedTime * 1000).toInt()} : ${rt.curKeyframe?.name}, i: $i',
+          // );
         }
       } else {
         if (motionsCubit.state.status == MotionStatus.prepare ||
@@ -403,6 +420,11 @@ class RunTimeWorkSpace {
   double preRatio;
   // 用来计算与上一帧的时间差，因为有可能并非严格等差时间。
   // double preElapsedTime;
+  /// 由于发送指令太快，会造成指令积压，导致电机执行时间严重拉长，所以在此做合并帧操作，将四帧数合并成一帧
+  List<List<double>> results;
+  // 合并帧数量
+  int windowSize;
+  int curSize;
 
   RunTimeWorkSpace({
     required this.curMotion,
@@ -415,6 +437,9 @@ class RunTimeWorkSpace {
     this.deltaTime = 0,
     this.result = const [],
     this.preRatio = 0.0,
+    this.results = const [],
+    this.windowSize = 30,
+    this.curSize = 0,
   }) {
     keyframeList = curMotion?.children ?? const [];
     curKeyframe =
@@ -427,6 +452,7 @@ class RunTimeWorkSpace {
 
     deltaDeg = List<double>.filled(6, 0.0);
     result = List<double>.filled(12, 0.0);
+    results = List.filled(0, [], growable: true);
   }
 }
 
@@ -446,4 +472,34 @@ List<double> timingFuncToDoubleList(String? input) {
     // 5. 无效数值返回 0.0（也可根据业务需求返回 null 再过滤）
     return numValue ?? 0.0;
   }).toList();
+}
+
+/// 合并帧，将多个帧合并起来，并发送给单片机
+// List<double> combinPostion(List<List<double>> positionArr) {
+void combinPostion(List<List<double>> positionArr, BleCubit bleCubit) {
+  List<double> result = List.filled(12, 0.0, growable: false);
+  print('combinPostion: ${positionArr.toString()}');
+
+  /// 位置只取最后一帧
+  for (int i = 0; i < positionArr.length; i++) {
+    for (int j = 0; j < positionArr[i].length; j++) {
+      if (j % 2 == 0) {
+        // i是位置
+        // 最后一个数组时候，直接将位置赋值给result
+        if (i == positionArr.length - 1) {
+          result[j] = positionArr[i][j];
+        }
+      } else {
+        // i + 1是速度
+        /// 平均速度就是 所有速度的总和 / 个数
+        result[j] += positionArr[i][j] / positionArr.length;
+      }
+    }
+  }
+  // print('---合并帧$result');
+
+  bleCubit.sendMsg(result);
+
+  /// 返回结果帧
+  // return result;
 }
