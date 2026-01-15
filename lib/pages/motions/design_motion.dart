@@ -227,9 +227,9 @@ class MotionItemCard extends StatelessWidget {
                     var num = int.tryParse(value);
                     if (num != null) {
                       item!.time = num;
-                      for (int i = 0; i < (item?.children.length ?? 0); i++) {
-                        item?.children[i].time = num;
-                      }
+                      // for (int i = 0; i < (item?.children.length ?? 0); i++) {
+                      //   item?.children[i].time = num;
+                      // }
                     } else {
                       item!.time = -1;
                     }
@@ -371,6 +371,25 @@ Future<void> saveDialog({
               // 构造motion类型数据
               List<Keyframe> keyframeList = [];
               for (int i = 0; i < keyframeWrapperList.length; i++) {
+                // 第一帧的时间必须为0
+                if (i == 0) {
+                  keyframeWrapperList[i].keyframe.time = 0;
+                } else {
+                  // 后续时间要加上前一帧的时间，之后就像一个时间尺
+                  keyframeWrapperList[i].keyframe.time +=
+                      keyframeWrapperList[i - 1].keyframe.time;
+
+                  /// 关节的时间暂时不用，未来如果优化到各个关节独立计算，可能才需要（目前是过度设计）
+                  for (
+                    int j = 0;
+                    j < keyframeWrapperList[i].keyframe.children.length;
+                    j++
+                  ) {
+                    keyframeWrapperList[i].keyframe.children[j].time =
+                        keyframeWrapperList[i].keyframe.time;
+                  }
+                }
+
                 keyframeList.add(keyframeWrapperList[i].keyframe);
               }
 

@@ -6,6 +6,7 @@ import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:robotic_arm_app/utils/bezierX2Y.dart';
+import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
@@ -23,6 +24,7 @@ class FlutterGameState extends State<ArmPage> {
   late JointsCubit jointsCubit;
   late MotionsCubit motionsCubit;
   late BleCubit bleCubit;
+  late MotorLogCubit motorLogCubit;
 
   late RunTimeWorkSpace rt;
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
@@ -43,6 +45,7 @@ class FlutterGameState extends State<ArmPage> {
     // 在这里安全获取 context 相关的依赖
     jointsCubit = BlocProvider.of<JointsCubit>(context);
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
+    motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
     bleCubit = BlocProvider.of<BleCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
@@ -229,84 +232,120 @@ class FlutterGameState extends State<ArmPage> {
         // print('dt: $dt, ${(elapsedTime * 1000).toInt()}');
         rt.elapsedTime += dt;
 
-        if (rt.len > 0) {
-          int i = 0;
-          for (i; i < rt.len; i++) {
-            /// 关键帧时间大于elapsedTime，表明当前帧正在执行
-            if (rt.keyframeList[i].time > (rt.elapsedTime * 1000).toInt()) {
-              rt.curKeyframe = rt.keyframeList[i];
-              rt.preKeyframe = i > 0 ? rt.keyframeList[i - 1] : rt.curKeyframe;
-              // 计算位置差
-              /// 计算时间差
-              rt.deltaTime = rt.curKeyframe!.time - rt.preKeyframe!.time;
-              double t =
-                  ((rt.elapsedTime * 1000).toInt() - rt.preKeyframe!.time) /
-                  (rt.curKeyframe!.time - rt.preKeyframe!.time);
-              // t取值0-1
-              t = t.clamp(0, 1);
+        /// 如歌当前关键帧的指针 大于 关键帧列表的最大下标值，则直接结束
+        if (rt.keyframeCursor >= rt.len) {
+          motionsCubit.updateStatus(MotionStatus.prepare);
+          rt.elapsedTime = 0;
+          rt.keyframeCursor = 0;
 
-              List<double> cp = timingFuncToDoubleList(
-                rt.curKeyframe!.timingFunction,
-              );
+          // 结束时将剩余的指令抽帧发出
+          combinPostion(rt.results, bleCubit);
+          rt.results.clear();
+          rt.curSize = 0;
+          return;
+        }
 
-              double? ratio = bezierXToY(t, [cp[0], cp[1]], [cp[2], cp[3]]);
-
-              // print('t: $t ratio: $ratio');
-
-              var jointsFrame = rt.curKeyframe?.children ?? [];
-              for (int j = 0; j < jointsFrame.length; j++) {
-                rt.deltaDeg[j] =
-                    rt.curKeyframe!.children[j].location -
-                    rt.preKeyframe!.children[j].location;
-
-                double deg =
-                    rt.deltaDeg[j] * ratio +
-                    rt.preKeyframe!.children[j].location;
-                jointsCubit.setSingleJoint('joint${j + 1}', deg);
-                //位置： 单片机需要 i *2 是位置，  边界值为-145.0, 145.0
-                rt.result[j * 2] = (deg / 180 * math.pi).clamp(-145.0, 145.0);
-                //速度： delta距离 / delta时间 = 速度 边界值为0.0, 15.0
-                rt.result[j * 2 + 1] =
-                    ((rt.deltaDeg[j] * ratio - rt.deltaDeg[j] * rt.preRatio) /
-                            dt /
-                            180 *
-                            math.pi)
-                        .clamp(-15.0, 15.0);
-
-                // print(
-                //   '距离差额比例: ${ratio - rt.preRatio} 距离差额$deg, 时间差额: $dt, 历经时间${rt.elapsedTime}',
-                // );
-              }
-              rt.preRatio = ratio;
-
-              print("rt.result: ${rt.curSize}, --- ${rt.result}");
-              rt.results.add(List.from(rt.result));
-              rt.curSize += 1;
-              if (rt.curSize == rt.windowSize) {
-                combinPostion(rt.results, bleCubit);
-                rt.results.clear();
-                rt.curSize = 0;
-                print('rt.results长度: ${rt.results.length}');
-              }
-
-              // print('deltaTime: ${rt.deltaTime} ${rt.result}');
-              // bleCubit.sendMsg(rt.result);
-              break;
-            }
+        /// 关键帧数量要大于等于2帧
+        if (rt.len > 1) {
+          /// 判断是否有当前关键帧, 没有的话：初始化赋值
+          if (rt.curKeyframe == null) {
+            rt.curKeyframe = rt.keyframeList[rt.keyframeCursor];
+            rt.preKeyframe = rt.keyframeList[rt.keyframeCursor];
           }
-          if (i == rt.len) {
-            // 最后一帧，将剩余的指令直接整合并发送
+
+          /// 如果当前的经历时间大于当前关键帧的时间，则需要赋值下一个关键帧
+          if ((rt.elapsedTime * 1000).toInt() >= rt.curKeyframe!.time) {
+            rt.keyframeCursor += 1;
+
+            /// 切换关键帧可能导致方向变化，会影响计算，所以直接存储的帧直接计算并发送
             combinPostion(rt.results, bleCubit);
             rt.results.clear();
             rt.curSize = 0;
 
-            motionsCubit.updateStatus(MotionStatus.prepare);
-            rt.elapsedTime = 0;
+            /// 超出关键帧数量。直接结束
+            if (rt.keyframeCursor >= rt.len) {
+              motionsCubit.updateStatus(MotionStatus.prepare);
+              rt.elapsedTime = 0;
+              rt.keyframeCursor = 0;
+              return;
+            }
+            rt.curKeyframe = rt.keyframeList[rt.keyframeCursor];
+            rt.preKeyframe = rt.keyframeList[rt.keyframeCursor - 1];
+
+            // if (rt.curKeyframe!.time <= rt.preKeyframe!.time) {
+            //   motionsCubit.updateStatus(MotionStatus.prepare);
+            //   rt.elapsedTime = 0;
+            //   rt.keyframeCursor = 0;
+            //   return;
+            // }
+
+            /// 计算时间差
+            rt.deltaTime = rt.curKeyframe!.time - rt.preKeyframe!.time;
+
+            /// 计算位置差
+            for (int i = 0; i < rt.curKeyframe!.children.length; i++) {
+              rt.deltaDeg[i] =
+                  rt.curKeyframe!.children[i].location -
+                  rt.preKeyframe!.children[i].location;
+            }
+
+            /// 获取控制点
+            rt.controlPoints = timingFuncToDoubleList(
+              rt.curKeyframe!.timingFunction,
+            );
           }
 
-          // print(
-          //   '当前关键帧 ${(rt.elapsedTime * 1000).toInt()} : ${rt.curKeyframe?.name}, i: $i',
-          // );
+          /// 接下来要计算当前时刻的位置
+          /// 第一步： 获取当前时的时间 在 总时间 里的百分几
+          double t =
+              ((rt.elapsedTime * 1000).toInt() - rt.preKeyframe!.time) /
+              (rt.curKeyframe!.time - rt.preKeyframe!.time);
+
+          t = t.clamp(0, 1);
+
+          /// 获取t时间时对应的y值
+          double? ratio = bezierXToY(
+            t,
+            [rt.controlPoints[0], rt.controlPoints[1]],
+            [rt.controlPoints[2], rt.controlPoints[3]],
+          );
+
+          /// 6个关节
+          for (int i = 0; i < 6; i++) {
+            /// 此处可能有bug，比如关键帧的children如果不是必须6帧（待校验），可能会导致赋值bug
+            // 当前位置是基于上一帧的位置的增量
+            double curDeg =
+                rt.deltaDeg[i] * ratio + rt.preKeyframe!.children[i].location;
+            jointsCubit.setSingleJoint('joint${i + 1}', curDeg);
+
+            /// 位置： 单片机需要 i *2 是位置，  边界值为-145.0, 145.0
+            rt.result[i * 2] = (curDeg / 180 * math.pi).clamp(-145.0, 145.0);
+
+            /// 速度： delta距离 / delta时间 = 速度 边界值为0.0, 15.0
+            rt.result[i * 2 + 1] =
+                ((rt.deltaDeg[i] * ratio - rt.deltaDeg[i] * rt.preRatio) /
+                        dt /
+                        180 *
+                        math.pi)
+                    .clamp(-15.0, 15.0);
+          }
+
+          print('位置指令: ${rt.result}');
+
+          /// 由于发送指令太快会导致指令积压，造成动作严重延迟
+          /// 所以在此做抽帧操作，比如将10个帧抽离合并成一个帧发送
+          rt.results.add(List.from(rt.result));
+          rt.curSize += 1;
+
+          /// 滑动窗口思想
+          if (rt.curSize == rt.windowSize) {
+            combinPostion(rt.results, bleCubit);
+            rt.results.clear();
+            rt.curSize = 0;
+            // print('rt.results长度: ${rt.results.length}');
+          }
+
+          rt.preRatio = ratio;
         }
       } else {
         if (motionsCubit.state.status == MotionStatus.prepare ||
@@ -409,12 +448,16 @@ class BleMsgPositions {
 class RunTimeWorkSpace {
   Motion? curMotion;
   List<Keyframe> keyframeList;
+
+  /// 用来记录当前运行到第几帧关键帧
+  int keyframeCursor;
   Keyframe? curKeyframe;
   Keyframe? preKeyframe;
   int len;
   double elapsedTime;
   List<double> deltaDeg;
   int deltaTime;
+  List<double> controlPoints;
   //最终需要的位置和速度信息
   List<double> result;
   double preRatio;
@@ -429,16 +472,18 @@ class RunTimeWorkSpace {
   RunTimeWorkSpace({
     required this.curMotion,
     this.keyframeList = const [],
+    this.keyframeCursor = 0,
     this.curKeyframe,
     this.preKeyframe,
     this.len = 0,
     this.elapsedTime = 0.0,
     this.deltaDeg = const [],
     this.deltaTime = 0,
+    this.controlPoints = const [.2, .2, .5, .5],
     this.result = const [],
     this.preRatio = 0.0,
     this.results = const [],
-    this.windowSize = 30,
+    this.windowSize = 60,
     this.curSize = 0,
   }) {
     keyframeList = curMotion?.children ?? const [];
@@ -491,12 +536,21 @@ void combinPostion(List<List<double>> positionArr, BleCubit bleCubit) {
         }
       } else {
         // i + 1是速度
-        /// 平均速度就是 所有速度的总和 / 个数
-        result[j] += positionArr[i][j] / positionArr.length;
+        /// 平均速度就是 所有速度的总和 / 个数, 设置最小转动速度，以免指令积压
+        result[j] += (positionArr[i][j] / positionArr.length);
+        // result[j] += positionArr[i][j] / positionArr.length;
+        // result[j] = 2.0;
+      }
+    }
+
+    /// 设置最低和最高速度
+    for (int i = 0; i < result.length; i++) {
+      if (i % 2 == 1) {
+        result[i] = result[i].abs().clamp(0.2, 15);
       }
     }
   }
-  // print('---合并帧$result');
+  print('---合并帧$result');
 
   bleCubit.sendMsg(result);
 
