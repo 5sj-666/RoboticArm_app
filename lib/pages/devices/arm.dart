@@ -178,7 +178,53 @@ class FlutterGameState extends State<ArmPage> {
     // 类似web的requestAniamtionFrame
     threeJs.addAnimationEvent((dt) {
       //这里添加动画效果
-      if (motionsCubit.state.status == MotionStatus.preparing) {
+      if (motionsCubit.state.status == MotionStatus.goToZero) {
+        if (rt.elapsedTime == 0.0) {
+          preparingInitPosition = List.from([
+            jointsCubit.state.joint1,
+            jointsCubit.state.joint2,
+            jointsCubit.state.joint3,
+            jointsCubit.state.joint4,
+            jointsCubit.state.joint5,
+            jointsCubit.state.joint6,
+          ]);
+          for (int i = 0; i < 6; i++) {
+            rt.deltaDeg[i] = 0.0 - preparingInitPosition[i];
+
+            rt.result[i * 2] = 0.0;
+            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0).clamp(0, 15);
+          }
+          // 如果当前的动作位置和目标位置完全一致，则直接切换到ready状态
+          bool allZero = rt.deltaDeg.every((deg) => deg.abs() < 0.001);
+          if (allZero) {
+            motionsCubit.updateStatus(MotionStatus.idle);
+            return;
+          }
+        }
+        // 将机械臂姿态移动到第一帧位置
+        rt.elapsedTime += dt;
+        // 直接是等比例速度移动到第一帧位置, 过渡时间为2秒
+        double progress = (rt.elapsedTime) / 2.0;
+
+        if (progress >= 1.0) {
+          for (int j = 0; j < 6; j++) {
+            jointsCubit.setSingleJoint('joint${j + 1}', 0.0);
+          }
+          // 准备完成，切换到ready状态
+          motionsCubit.updateStatus(MotionStatus.idle);
+          rt.elapsedTime = 0.0;
+        } else {
+          for (int j = 0; j < 6; j++) {
+            double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
+            jointsCubit.setSingleJoint(
+              'joint${j + 1}',
+              deg.clamp(-145.0, 145.0),
+            );
+          }
+        }
+
+        // print('gotozero: $progress, --- ');
+      } else if (motionsCubit.state.status == MotionStatus.preparing) {
         print('---准备动作中');
         if (rt.elapsedTime == 0.0) {
           // 目标关节位置在于动作的第一帧
@@ -197,9 +243,10 @@ class FlutterGameState extends State<ArmPage> {
                 rt.curKeyframe!.children[i].location - preparingInitPosition[i];
 
             // 因为是初始化，所以将匀速位置和速度直接发送给单片机
-            rt.result[i * 2] =
-                rt.curKeyframe!.children[i].location / 180 * math.pi;
-            rt.result[i * 2 + 1] = 2.0;
+            rt.result[i *
+                2] = (rt.curKeyframe!.children[i].location / 180 * math.pi)
+                .clamp(-145.0, 145.0);
+            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0).clamp(0, 15);
           }
           bleCubit.sendMsg(rt.result);
           print('---准备动作中，目标位置差值: ${rt.deltaDeg}');
@@ -217,15 +264,26 @@ class FlutterGameState extends State<ArmPage> {
         // 直接是等比例速度移动到第一帧位置, 过渡时间为2秒
         double progress = (rt.elapsedTime) / 2.0;
 
-        for (int j = 0; j < rt.curKeyframe!.children.length; j++) {
-          double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
-          jointsCubit.setSingleJoint('joint${j + 1}', deg);
-        }
-
+        // 最后一帧有溢出的可能性，比如progress = 1.0079999999999987,
         if (progress >= 1.0) {
+          for (int j = 0; j < rt.curKeyframe!.children.length; j++) {
+            double deg = rt.deltaDeg[j] * 1 + preparingInitPosition[j];
+            jointsCubit.setSingleJoint(
+              'joint${j + 1}',
+              deg.clamp(-145.0, 145.0),
+            );
+          }
           // 准备完成，切换到ready状态
           motionsCubit.updateStatus(MotionStatus.ready);
           rt.elapsedTime = 0.0;
+        } else {
+          for (int j = 0; j < rt.curKeyframe!.children.length; j++) {
+            double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
+            jointsCubit.setSingleJoint(
+              'joint${j + 1}',
+              deg.clamp(-145.0, 145.0),
+            );
+          }
         }
       } else if (motionsCubit.state.status == MotionStatus.running) {
         // print('---运行动画${rt.len}');
@@ -483,7 +541,7 @@ class RunTimeWorkSpace {
     this.result = const [],
     this.preRatio = 0.0,
     this.results = const [],
-    this.windowSize = 60,
+    this.windowSize = 30,
     this.curSize = 0,
   }) {
     keyframeList = curMotion?.children ?? const [];
@@ -546,7 +604,7 @@ void combinPostion(List<List<double>> positionArr, BleCubit bleCubit) {
     /// 设置最低和最高速度
     for (int i = 0; i < result.length; i++) {
       if (i % 2 == 1) {
-        result[i] = result[i].abs().clamp(0.2, 15);
+        result[i] = result[i].abs().clamp(0.5, 15);
       }
     }
   }

@@ -20,8 +20,14 @@ void main() async {
         BlocProvider(create: (context) => JointsCubit()),
         BlocProvider(create: (context) => MotionsCubit()),
         BlocProvider(create: (context) => HomeCubit()),
-        BlocProvider(create: (context) => BleCubit()),
         BlocProvider(create: (context) => MotorLogCubit()),
+        // BlocProvider(create: (context) => BleCubit()),
+        BlocProvider(
+          create: (context) {
+            final motorLogCubit = context.read<MotorLogCubit>();
+            return BleCubit(motorLogCubit);
+          },
+        ),
       ],
       child: MyApp(),
     ),

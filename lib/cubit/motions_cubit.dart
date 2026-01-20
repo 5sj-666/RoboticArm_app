@@ -38,7 +38,16 @@ final logger = Logger();
 
 // 定义动作状态枚举 播放结束： finished
 // 需要准备好,才能运行
-enum MotionStatus { idle, prepare, preparing, ready, running, paused, finished }
+enum MotionStatus {
+  idle,
+  prepare,
+  preparing,
+  ready,
+  running,
+  paused,
+  finished,
+  goToZero,
+}
 
 class MotionsState {
   final List<Motion> motions;
