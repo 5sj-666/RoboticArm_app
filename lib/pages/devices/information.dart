@@ -8,16 +8,13 @@ import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
-import 'package:robotic_arm_app/components/joint_slider.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'package:intl/intl.dart';
-// import 'dart:ui' as ui;
-// import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
-// import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
 import 'package:robotic_arm_app/components/MotionStatusBtn.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_collapse.dart';
+import 'package:robotic_arm_app/pages/devices/sliding_panel.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -32,48 +29,6 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   late MotionsCubit motionsCubit;
   late BleCubit bleCubit;
   late MotorLogCubit motorLogCubit;
-
-  void _updateJointValue(double newVal, int index) {
-    print('_updateJointValue: newval: $newVal ,index$index');
-
-    Future.delayed(const Duration(seconds: 0), () {
-      jointsCubit.setSingleJoint('joint${index + 1}', newVal);
-      print('Information Page 关节$index: ${jointsCubit.state}');
-    });
-  }
-
-  void _updateJointEnd(double newVal, int index) {
-    print('---关节变化结束---$newVal --- $index');
-
-    /// 将速度指令和位置指令发送给单片机
-    final motorCmd = MotorCmdGenerator();
-    final enableCmd = motorCmd.generateCMD('enable', {'motorId': 21});
-    bleCubit.sendSingleCmd(enableCmd);
-    motorLogCubit.addLog(cmd: enableCmd);
-
-    int motorId = 21 + index;
-
-    final runmodeCmd = motorCmd.generateCMD('run_mode', {
-      'motorId': motorId,
-      'run_mode': 1,
-    });
-    bleCubit.sendSingleCmd(runmodeCmd);
-    motorLogCubit.addLog(cmd: runmodeCmd);
-
-    final speedCmd = motorCmd.generateCMD('limit_spd', {
-      'motorId': motorId,
-      'limit_spd': 2.0,
-    });
-    bleCubit.sendSingleCmd(speedCmd);
-    motorLogCubit.addLog(cmd: speedCmd);
-
-    final locationCmd = motorCmd.generateCMD('loc_ref', {
-      'motorId': motorId,
-      'loc_ref': newVal / 180 * 3.14,
-    });
-    bleCubit.sendSingleCmd(locationCmd);
-    motorLogCubit.addLog(cmd: locationCmd);
-  }
 
   @override
   void initState() {
@@ -98,8 +53,8 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   @override
   Widget build(BuildContext context) {
     jointsCubit = BlocProvider.of<JointsCubit>(context);
-
     PanelController _pc = PanelController();
+    final motorCmd = MotorCmdGenerator();
 
     return SlidingUpPanel(
       // color: Colors.black,
@@ -124,118 +79,40 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
               // mainAxisAlignment: MainAxisAlignment.start,
               controller: sc,
               children: <Widget>[
-                SizedBox(height: 12.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: <Widget>[
-                    Container(
-                      width: 30,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                      ),
-                    ),
-                  ],
-                ),
-                slidingCollapse(bleCubit),
-                SizedBox(height: 14.0),
-                BlocBuilder<JointsCubit, JointsState>(
-                  builder: (context, state) {
-                    return Wrap(
-                      children: [
-                        // 等待优化
-                        FractionallySizedBox(
-                          widthFactor: 0.5,
-                          child: JointSlider(
-                            title: '关节1:',
-                            value: state.joint1,
-                            onValueChanged: _updateJointValue,
-                            index: 0,
-                            min: -145.0,
-                            max: 145.0,
-                            onChangeEnd: _updateJointEnd,
-                            disable:
-                                motionsCubit.state.status != MotionStatus.idle,
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.5,
-                          child: JointSlider(
-                            title: '关节2:',
-                            // value: _jointValues[i],
-                            value: state.joint2,
-                            onValueChanged: _updateJointValue,
-                            index: 1,
-                            min: -100.0,
-                            max: 100.0,
-                            onChangeEnd: _updateJointEnd,
-                            disable:
-                                motionsCubit.state.status != MotionStatus.idle,
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.5,
-                          child: JointSlider(
-                            title: '关节3:',
-                            value: state.joint3,
-                            onValueChanged: _updateJointValue,
-                            index: 2,
-                            min: -145.0,
-                            max: 145.0,
-                            onChangeEnd: _updateJointEnd,
-                            disable:
-                                motionsCubit.state.status != MotionStatus.idle,
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.5,
-                          child: JointSlider(
-                            title: '关节4:',
-                            value: state.joint4,
-                            onValueChanged: _updateJointValue,
-                            index: 3,
-                            min: -145.0,
-                            max: 145.0,
-                            onChangeEnd: _updateJointEnd,
-                            disable:
-                                motionsCubit.state.status != MotionStatus.idle,
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.5,
-                          child: JointSlider(
-                            title: '关节5:',
-                            value: state.joint5,
-                            onValueChanged: _updateJointValue,
-                            index: 4,
-                            min: -145.0,
-                            max: 145.0,
-                            onChangeEnd: _updateJointEnd,
-                            disable:
-                                motionsCubit.state.status != MotionStatus.idle,
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.5,
-                          child: JointSlider(
-                            title: '关节6:',
-                            value: state.joint6,
-                            onValueChanged: _updateJointValue,
-                            index: 5,
-                            min: -145.0,
-                            max: 145.0,
-                            onChangeEnd: _updateJointEnd,
-                            disable:
-                                motionsCubit.state.status != MotionStatus.idle,
+                    SizedBox(height: 12.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Container(
+                          width: 30,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(12.0),
+                            ),
                           ),
                         ),
                       ],
-                    );
-                  },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 14.0),
+                      child: slidingCollapse(bleCubit),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 20),
-                if (motionsCubit.state.status == MotionStatus.idle)
+                SlidingPanelContent(
+                  jointsCubit: jointsCubit,
+                  motionsCubit: motionsCubit,
+                  bleCubit: bleCubit,
+                  motorLogCubit: motorLogCubit,
+                ),
+
+                if (motionsCubit.state.status == MotionStatus.idle ||
+                    motionsCubit.state.status == MotionStatus.goToZero)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -273,14 +150,58 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                       ),
                     ],
                   ),
-                if (motionsCubit.state.status == MotionStatus.idle)
+                if (motionsCubit.state.status == MotionStatus.idle ||
+                    motionsCubit.state.status == MotionStatus.goToZero)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      ElevatedButton(onPressed: () {}, child: Text('使能')),
                       ElevatedButton(
                         onPressed: () {
-                          // for (int i = 0; i < 6; i++) {}
+                          // 六个关节都使能
+                          for (int i = 0; i < 6; i++) {
+                            final motorId = 21 + i;
+                            final enableCmd = motorCmd.generateCMD('enable', {
+                              'motorId': motorId,
+                            });
+
+                            bleCubit.sendSingleCmd(enableCmd);
+                          }
+                        },
+                        child: Text('使能'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // 设置当前为零点，并移动到零点
+                          for (int i = 0; i < 6; i++) {
+                            final motorId = 21 + i;
+                            final setAsZero = motorCmd.generateCMD(
+                              'setAsZero',
+                              {'motorId': motorId},
+                            );
+                            bleCubit.sendSingleCmd(setAsZero);
+                            final runmodeCmd = motorCmd.generateCMD(
+                              'run_mode',
+                              {'motorId': motorId, 'run_mode': 1},
+                            );
+                            bleCubit.sendSingleCmd(runmodeCmd);
+                            // 设置速度
+                            final speedCmd = motorCmd.generateCMD('limit_spd', {
+                              'motorId': motorId,
+                              'limit_spd': 2.0,
+                            });
+                            bleCubit.sendSingleCmd(speedCmd);
+                            // 移动到零点
+                            final locRefCmd = motorCmd.generateCMD('loc_ref', {
+                              'motorId': motorId,
+                              'loc_ref': 0.0,
+                            });
+                            bleCubit.sendSingleCmd(locRefCmd);
+                          }
+                        },
+                        child: Text('初始化'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
                           motionsCubit.updateStatus(MotionStatus.goToZero);
                           print('归零');
                         },
@@ -288,7 +209,9 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                       ),
                     ],
                   ),
-                if (motionsCubit.state.status != MotionStatus.idle)
+                // if (motionsCubit.state.status != MotionStatus.idle &&
+                //     motionsCubit.state.status != MotionStatus.goToZero)
+                if (motionsCubit.state.currentMotion != null)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [

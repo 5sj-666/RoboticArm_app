@@ -80,7 +80,8 @@ Widget slidingCollapse(BleCubit bleCubit) {
           final motionsName = state.currentMotion?.name ?? '';
           needScrollText(motionsName);
           return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            spacing: 10,
             children: [
               BlocBuilder<BleCubit, BleState>(
                 builder: (bleContext, state) {
@@ -149,28 +150,32 @@ Widget slidingCollapse(BleCubit bleCubit) {
                   );
                 },
               ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("动作", style: TextStyle(color: Colors.grey)),
-                  SizedBox(height: 8),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("动作", style: TextStyle(color: Colors.grey)),
+                    SizedBox(height: 8),
 
-                  motionsNamePainter.width < 120
-                      ? Text(motionsName, textAlign: TextAlign.center)
-                      : SizedBox(
-                          width: 120, // 设置一个固定宽度
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.horizontal, // 水平滚动
-                            child: Text(
-                              motionsName,
-                              // 禁止自动换行
-                              softWrap: false,
+                    motionsNamePainter.width < 120
+                        ? Text(motionsName, textAlign: TextAlign.center)
+                        : SizedBox(
+                            width: 120, // 设置一个固定宽度
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              scrollDirection: Axis.horizontal, // 水平滚动
+                              child: Text(
+                                motionsName,
+                                // 禁止自动换行
+                                softWrap: false,
+                              ),
                             ),
                           ),
-                        ),
-                ],
+                  ],
+                ),
               ),
+
               MotionStatusBtn(),
               // TextButton(
               //   onPressed: () {
