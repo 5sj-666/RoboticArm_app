@@ -27,7 +27,7 @@ class JointSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         Container(
           alignment: Alignment(-1.0, 0.0),
@@ -53,24 +53,29 @@ class JointSlider extends StatelessWidget {
             ),
           ),
         ),
-        Slider(
-          label: title,
-          min: min,
-          max: max,
-          activeColor: Colors.blue,
-          value: value,
-          onChanged: disable
-              ? null
-              : (double newVal) {
-                  onValueChanged(newVal, index);
-                },
-          onChangeEnd: disable
-              ? null
-              : (double newVal) {
-                  if (onChangeEnd != null) {
-                    onChangeEnd!(newVal, index);
-                  }
-                },
+        SizedBox(
+          width: 160,
+          child: Slider(
+            label: title,
+            min: min,
+            max: max,
+            activeColor: Colors.blue,
+            value: value,
+            // padding: EdgeInsets.fromLTRB(15, 15, 15, 15),
+            padding: EdgeInsets.fromLTRB(5, 15, 5, 15),
+            onChanged: disable
+                ? null
+                : (double newVal) {
+                    onValueChanged(newVal, index);
+                  },
+            onChangeEnd: disable
+                ? null
+                : (double newVal) {
+                    if (onChangeEnd != null) {
+                      onChangeEnd!(newVal, index);
+                    }
+                  },
+          ),
         ),
       ],
     );

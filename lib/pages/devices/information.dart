@@ -33,10 +33,6 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   @override
   void initState() {
     super.initState();
-    // ignore: no_leading_underscores_for_local_identifiers
-    // _scrollController = ScrollController();
-
-    // initialize motionsCubit before reading its state
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
     bleCubit = BlocProvider.of<BleCubit>(context);
     bleCubit.init();
@@ -45,8 +41,6 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
 
   @override
   void dispose() {
-    // _scrollController.dispose();
-    // _timer.cancel();
     super.dispose();
   }
 
@@ -75,159 +69,166 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
           return MediaQuery.removePadding(
             context: context,
             removeTop: true,
-            child: ListView(
-              // mainAxisAlignment: MainAxisAlignment.start,
+            child: Scrollbar(
               controller: sc,
-              children: <Widget>[
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: <Widget>[
-                    SizedBox(height: 12.0),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Container(
-                          width: 30,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(12.0),
+              child: ListView(
+                // mainAxisAlignment: MainAxisAlignment.start,
+                controller: sc,
+                children: <Widget>[
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: <Widget>[
+                      SizedBox(height: 12.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Container(
+                            width: 30,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12.0),
+                              ),
                             ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 14.0),
+                        child: slidingCollapse(bleCubit),
+                      ),
+                    ],
+                  ),
+                  SlidingPanelContent(
+                    jointsCubit: jointsCubit,
+                    motionsCubit: motionsCubit,
+                    bleCubit: bleCubit,
+                    motorLogCubit: motorLogCubit,
+                  ),
+
+                  if (motionsCubit.state.status == MotionStatus.idle ||
+                      motionsCubit.state.status == MotionStatus.goToZero)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        FilledButton(
+                          onPressed: () {
+                            context.router.push(
+                              NamedRoute('OrderKeyframeRoute'),
+                            );
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll<Color>(
+                              Colors.blue.shade300,
+                            ),
+                          ),
+                          child: const Text(
+                            '设计动作',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            print('保存为关键帧');
+                            saveDialog(
+                              context: context,
+                              jointsCubit: jointsCubit,
+                            );
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll<Color>(
+                              Colors.blue.shade300,
+                            ),
+                          ),
+                          child: const Text(
+                            '保存为关键帧',
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 14.0),
-                      child: slidingCollapse(bleCubit),
+                  if (motionsCubit.state.status == MotionStatus.idle ||
+                      motionsCubit.state.status == MotionStatus.goToZero)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            // 六个关节都使能
+                            for (int i = 0; i < 6; i++) {
+                              final motorId = 21 + i;
+                              final enableCmd = motorCmd.generateCMD('enable', {
+                                'motorId': motorId,
+                              });
+
+                              bleCubit.sendSingleCmd(enableCmd);
+                            }
+                          },
+                          child: Text('使能'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // 设置当前为零点，并移动到零点
+                            for (int i = 0; i < 6; i++) {
+                              final motorId = 21 + i;
+                              final setAsZero = motorCmd.generateCMD(
+                                'setAsZero',
+                                {'motorId': motorId},
+                              );
+                              bleCubit.sendSingleCmd(setAsZero);
+                              final runmodeCmd = motorCmd.generateCMD(
+                                'run_mode',
+                                {'motorId': motorId, 'run_mode': 1},
+                              );
+                              bleCubit.sendSingleCmd(runmodeCmd);
+                              // 设置速度
+                              final speedCmd = motorCmd.generateCMD(
+                                'limit_spd',
+                                {'motorId': motorId, 'limit_spd': 2.0},
+                              );
+                              bleCubit.sendSingleCmd(speedCmd);
+                              // 移动到零点
+                              final locRefCmd = motorCmd.generateCMD(
+                                'loc_ref',
+                                {'motorId': motorId, 'loc_ref': 0.0},
+                              );
+                              bleCubit.sendSingleCmd(locRefCmd);
+                            }
+                          },
+                          child: Text('初始化'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            motionsCubit.updateStatus(MotionStatus.goToZero);
+                            print('归零');
+                          },
+                          child: Text('归零'),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                SlidingPanelContent(
-                  jointsCubit: jointsCubit,
-                  motionsCubit: motionsCubit,
-                  bleCubit: bleCubit,
-                  motorLogCubit: motorLogCubit,
-                ),
-
-                if (motionsCubit.state.status == MotionStatus.idle ||
-                    motionsCubit.state.status == MotionStatus.goToZero)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      FilledButton(
-                        onPressed: () {
-                          context.router.push(NamedRoute('OrderKeyframeRoute'));
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStatePropertyAll<Color>(
-                            Colors.blue.shade300,
-                          ),
-                        ),
-                        child: const Text(
-                          '设计动作',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      FilledButton(
-                        onPressed: () {
-                          print('保存为关键帧');
-                          saveDialog(
-                            context: context,
-                            jointsCubit: jointsCubit,
-                          );
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStatePropertyAll<Color>(
-                            Colors.blue.shade300,
-                          ),
-                        ),
-                        child: const Text(
-                          '保存为关键帧',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                if (motionsCubit.state.status == MotionStatus.idle ||
-                    motionsCubit.state.status == MotionStatus.goToZero)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          // 六个关节都使能
-                          for (int i = 0; i < 6; i++) {
-                            final motorId = 21 + i;
-                            final enableCmd = motorCmd.generateCMD('enable', {
-                              'motorId': motorId,
-                            });
-
-                            bleCubit.sendSingleCmd(enableCmd);
-                          }
-                        },
-                        child: Text('使能'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          // 设置当前为零点，并移动到零点
-                          for (int i = 0; i < 6; i++) {
-                            final motorId = 21 + i;
-                            final setAsZero = motorCmd.generateCMD(
-                              'setAsZero',
-                              {'motorId': motorId},
+                  // if (motionsCubit.state.status != MotionStatus.idle &&
+                  //     motionsCubit.state.status != MotionStatus.goToZero)
+                  if (motionsCubit.state.currentMotion != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        MotionStatusBtn(),
+                        ElevatedButton(
+                          onPressed: () {
+                            motionsCubit.clearCurMotion();
+                            print(
+                              '--卸载动作---${motionsCubit.state.currentMotion}',
                             );
-                            bleCubit.sendSingleCmd(setAsZero);
-                            final runmodeCmd = motorCmd.generateCMD(
-                              'run_mode',
-                              {'motorId': motorId, 'run_mode': 1},
-                            );
-                            bleCubit.sendSingleCmd(runmodeCmd);
-                            // 设置速度
-                            final speedCmd = motorCmd.generateCMD('limit_spd', {
-                              'motorId': motorId,
-                              'limit_spd': 2.0,
-                            });
-                            bleCubit.sendSingleCmd(speedCmd);
-                            // 移动到零点
-                            final locRefCmd = motorCmd.generateCMD('loc_ref', {
-                              'motorId': motorId,
-                              'loc_ref': 0.0,
-                            });
-                            bleCubit.sendSingleCmd(locRefCmd);
-                          }
-                        },
-                        child: Text('初始化'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          motionsCubit.updateStatus(MotionStatus.goToZero);
-                          print('归零');
-                        },
-                        child: Text('归零'),
-                      ),
-                    ],
-                  ),
-                // if (motionsCubit.state.status != MotionStatus.idle &&
-                //     motionsCubit.state.status != MotionStatus.goToZero)
-                if (motionsCubit.state.currentMotion != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      MotionStatusBtn(),
-                      ElevatedButton(
-                        onPressed: () {
-                          motionsCubit.clearCurMotion();
-                          print('--卸载动作---${motionsCubit.state.currentMotion}');
-                          // motionsCubit.state.status
-                        },
-                        child: Text('卸载动作'),
-                      ),
-                      // ElevatedButton(onPressed: () {}, child: Text('卸载动作')),
-                    ],
-                  ),
-              ],
+                            // motionsCubit.state.status
+                          },
+                          child: Text('卸载动作'),
+                        ),
+                        // ElevatedButton(onPressed: () {}, child: Text('卸载动作')),
+                      ],
+                    ),
+                ],
+              ),
             ),
           );
         },
