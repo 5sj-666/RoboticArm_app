@@ -11,11 +11,11 @@ class MotorCmdGenerator {
   List<int> twaiData = List.filled(8, 0);
 
   /// 核心方法：生成指定类型的指令
-  /// [type] 指令类型（initialPoint/enable/disable/jog5/jog0/limit_spd/loc_ref/run_mode）
+  /// [type] 指令类型（ setAsZero /enable/disable/jog5/jog0/limit_spd/loc_ref/run_mode）
   /// [params] 指令参数，可选键：motorId/limit_spd/loc_ref/run_mode
   List<int> generateCMD(String type, [Map<String, dynamic> params = const {}]) {
     final Map<String, Function()> strategies = {
-      'initialPoint': () {
+      'setAsZero': () {
         final int motorId = params['motorId'] ?? 0;
         twaiId = [0x06, 0x00, 0xfd, motorId];
         twaiData = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];

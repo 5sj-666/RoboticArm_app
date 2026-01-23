@@ -11,7 +11,7 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 import 'package:robotic_arm_app/types/motions.dart';
-import 'package:intl/intl.dart';
+// import 'package:intl/intl.dart';
 import 'package:robotic_arm_app/components/MotionStatusBtn.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_collapse.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_panel.dart';
@@ -300,14 +300,16 @@ Keyframe generateKeyframe(JointsState positions, String inputName) {
 
   final keyframe = Keyframe(
     name: inputName,
-    createTime: DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now()),
-    children: [],
+    // createTime: DateFormat('yyyy-MM-dd HH-mm-ss').format(DateTime.now()),
+    createTime: DateTime.now().millisecondsSinceEpoch.toString(),
+    positions: List.filled(6, 0.0),
   );
   positionMap.forEach((key, value) {
     final motorId = jointIdMap[key];
     if (motorId == null) return;
-    final item = KeyframeItem(location: value, motorId: motorId);
-    keyframe.children.add(item);
+    keyframe.positions[motorId - 21] = value;
+    // final item = KeyframeItem(location: value, motorId: motorId);
+    // keyframe.children.add(item);
   });
 
   return keyframe;

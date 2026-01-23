@@ -8,17 +8,17 @@ part of 'motions.dart';
 
 Keyframe _$KeyframeFromJson(Map<String, dynamic> json) => Keyframe(
   name: json['name'] as String?,
-  children: (json['children'] as List<dynamic>)
-      .map((e) => KeyframeItem.fromJson(e as Map<String, dynamic>))
+  positions: (json['positions'] as List<dynamic>)
+      .map((e) => (e as num).toDouble())
       .toList(),
-  time: (json['time'] as num?)?.toInt() ?? 0,
+  time: (json['time'] as num?)?.toDouble() ?? 0.0,
   createTime: json['createTime'] as String?,
   timingFunction: json['timingFunction'] as String?,
 );
 
 Map<String, dynamic> _$KeyframeToJson(Keyframe instance) => <String, dynamic>{
   'name': instance.name,
-  'children': instance.children,
+  'positions': instance.positions,
   'time': instance.time,
   'createTime': instance.createTime,
   'timingFunction': instance.timingFunction,
@@ -31,7 +31,7 @@ Motion _$MotionFromJson(Map<String, dynamic> json) => Motion(
   createTime: json['createTime'] as String?,
   imgs: (json['imgs'] as List<dynamic>?)?.map((e) => e as String).toList(),
   coverImg: json['coverImg'] as String?,
-  children: (json['children'] as List<dynamic>)
+  keyframes: (json['keyframes'] as List<dynamic>)
       .map((e) => Keyframe.fromJson(e as Map<String, dynamic>))
       .toList(),
   author: json['author'] as String?,
@@ -44,7 +44,7 @@ Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
   'description': instance.description,
   'imgs': instance.imgs,
   'coverImg': instance.coverImg,
-  'children': instance.children,
+  'keyframes': instance.keyframes,
   'createTime': instance.createTime,
   'author': instance.author,
   'faverite': instance.faverite,

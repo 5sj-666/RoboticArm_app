@@ -238,13 +238,12 @@ class FlutterGameState extends State<ArmPage> {
             jointsCubit.state.joint5,
             jointsCubit.state.joint6,
           ];
-          for (int i = 0; i < rt.curKeyframe!.children.length; i++) {
+          for (int i = 0; i < rt.curKeyframe!.positions.length; i++) {
             rt.deltaDeg[i] =
-                rt.curKeyframe!.children[i].location - preparingInitPosition[i];
+                rt.curKeyframe!.positions[i] - preparingInitPosition[i];
 
             // 因为是初始化，所以将匀速位置和速度直接发送给单片机
-            rt.result[i *
-                2] = (rt.curKeyframe!.children[i].location / 180 * math.pi)
+            rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi)
                 .clamp(-145.0, 145.0);
             rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0).clamp(0, 15);
           }
@@ -266,7 +265,7 @@ class FlutterGameState extends State<ArmPage> {
 
         // 最后一帧有溢出的可能性，比如progress = 1.0079999999999987,
         if (progress >= 1.0) {
-          for (int j = 0; j < rt.curKeyframe!.children.length; j++) {
+          for (int j = 0; j < rt.curKeyframe!.positions.length; j++) {
             double deg = rt.deltaDeg[j] * 1 + preparingInitPosition[j];
             jointsCubit.setSingleJoint(
               'joint${j + 1}',
@@ -277,7 +276,7 @@ class FlutterGameState extends State<ArmPage> {
           motionsCubit.updateStatus(MotionStatus.ready);
           rt.elapsedTime = 0.0;
         } else {
-          for (int j = 0; j < rt.curKeyframe!.children.length; j++) {
+          for (int j = 0; j < rt.curKeyframe!.positions.length; j++) {
             double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
             jointsCubit.setSingleJoint(
               'joint${j + 1}',
@@ -287,7 +286,6 @@ class FlutterGameState extends State<ArmPage> {
         }
       } else if (motionsCubit.state.status == MotionStatus.running) {
         // print('---运行动画${rt.len}');
-        // print('dt: $dt, ${(elapsedTime * 1000).toInt()}');
         rt.elapsedTime += dt;
 
         /// 如歌当前关键帧的指针 大于 关键帧列表的最大下标值，则直接结束
@@ -312,7 +310,7 @@ class FlutterGameState extends State<ArmPage> {
           }
 
           /// 如果当前的经历时间大于当前关键帧的时间，则需要赋值下一个关键帧
-          if ((rt.elapsedTime * 1000).toInt() >= rt.curKeyframe!.time) {
+          if (rt.elapsedTime >= rt.curKeyframe!.time) {
             rt.keyframeCursor += 1;
 
             /// 切换关键帧可能导致方向变化，会影响计算，所以直接存储的帧直接计算并发送
@@ -341,10 +339,9 @@ class FlutterGameState extends State<ArmPage> {
             rt.deltaTime = rt.curKeyframe!.time - rt.preKeyframe!.time;
 
             /// 计算位置差
-            for (int i = 0; i < rt.curKeyframe!.children.length; i++) {
+            for (int i = 0; i < rt.curKeyframe!.positions.length; i++) {
               rt.deltaDeg[i] =
-                  rt.curKeyframe!.children[i].location -
-                  rt.preKeyframe!.children[i].location;
+                  rt.curKeyframe!.positions[i] - rt.preKeyframe!.positions[i];
             }
 
             /// 获取控制点
@@ -356,7 +353,7 @@ class FlutterGameState extends State<ArmPage> {
           /// 接下来要计算当前时刻的位置
           /// 第一步： 获取当前时的时间 在 总时间 里的百分几
           double t =
-              ((rt.elapsedTime * 1000).toInt() - rt.preKeyframe!.time) /
+              (rt.elapsedTime - rt.preKeyframe!.time) /
               (rt.curKeyframe!.time - rt.preKeyframe!.time);
 
           t = t.clamp(0, 1);
@@ -373,7 +370,7 @@ class FlutterGameState extends State<ArmPage> {
             /// 此处可能有bug，比如关键帧的children如果不是必须6帧（待校验），可能会导致赋值bug
             // 当前位置是基于上一帧的位置的增量
             double curDeg =
-                rt.deltaDeg[i] * ratio + rt.preKeyframe!.children[i].location;
+                rt.deltaDeg[i] * ratio + rt.preKeyframe!.positions[i];
             jointsCubit.setSingleJoint('joint${i + 1}', curDeg);
 
             /// 位置： 单片机需要 i *2 是位置，  边界值为-145.0, 145.0
@@ -514,7 +511,7 @@ class RunTimeWorkSpace {
   int len;
   double elapsedTime;
   List<double> deltaDeg;
-  int deltaTime;
+  double deltaTime;
   List<double> controlPoints;
   //最终需要的位置和速度信息
   List<double> result;
@@ -544,14 +541,14 @@ class RunTimeWorkSpace {
     this.windowSize = 30,
     this.curSize = 0,
   }) {
-    keyframeList = curMotion?.children ?? const [];
+    keyframeList = curMotion?.keyframes ?? const [];
     curKeyframe =
-        curMotion?.children[1] ??
-        Keyframe(name: '', timingFunction: '', time: 0, children: []);
+        curMotion?.keyframes[1] ??
+        Keyframe(name: '', timingFunction: '', time: 0, positions: []);
     preKeyframe =
-        curMotion?.children[1] ??
-        Keyframe(name: '', timingFunction: '', time: 0, children: []);
-    len = curMotion?.children.length ?? 0;
+        curMotion?.keyframes[1] ??
+        Keyframe(name: '', timingFunction: '', time: 0, positions: []);
+    len = curMotion?.keyframes.length ?? 0;
 
     deltaDeg = List<double>.filled(6, 0.0);
     result = List<double>.filled(12, 0.0);
