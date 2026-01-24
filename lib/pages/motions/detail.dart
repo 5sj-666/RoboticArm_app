@@ -74,7 +74,7 @@ class DetailPage extends StatelessWidget {
                   Container(
                     margin: EdgeInsets.only(top: 10),
                     width: screenWidth,
-                    height: 120,
+                    height: 160,
                     decoration: BoxDecoration(color: Colors.white),
                     child: Padding(
                       padding: EdgeInsetsGeometry.all(8),
@@ -87,13 +87,17 @@ class DetailPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Text(
                             motion.description,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
+                              // overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Row(

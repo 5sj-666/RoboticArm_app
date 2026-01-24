@@ -228,6 +228,9 @@ class FlutterGameState extends State<ArmPage> {
         print('---准备动作中');
         if (rt.elapsedTime == 0.0) {
           // 目标关节位置在于动作的第一帧
+          /// 从ai 应用动作 跳转到此页面不会出发生命周期，所以在此手动初始化。需要优化:将其放到生命周期里
+          rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
+
           rt.curKeyframe = rt.keyframeList[0];
 
           preparingInitPosition = [

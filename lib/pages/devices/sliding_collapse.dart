@@ -36,7 +36,7 @@ Widget slidingCollapse(BleCubit bleCubit) {
 
       bool directionLTR = true; // 标记方向
       // print();
-      // if (_scrollController.offset > 120) {
+      // if (_scrollController.offset > 100) {
       _timer = Timer.periodic(Duration(milliseconds: 500), (timer) {
         // 每隔500毫秒滚动一次
         if (_scrollController.hasClients) {
@@ -59,7 +59,7 @@ Widget slidingCollapse(BleCubit bleCubit) {
     }
 
     // print("text 长度${motionsNamePainter.width}");
-    if (motionsNamePainter.width >= 120) {
+    if (motionsNamePainter.width >= 100) {
       scrollFunc();
     }
   }
@@ -80,8 +80,7 @@ Widget slidingCollapse(BleCubit bleCubit) {
           final motionsName = state.currentMotion?.name ?? '';
           needScrollText(motionsName);
           return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            spacing: 10,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               BlocBuilder<BleCubit, BleState>(
                 builder: (bleContext, state) {
@@ -158,10 +157,14 @@ Widget slidingCollapse(BleCubit bleCubit) {
                     Text("动作", style: TextStyle(color: Colors.grey)),
                     SizedBox(height: 8),
 
-                    motionsNamePainter.width < 120
-                        ? Text(motionsName, textAlign: TextAlign.center)
+                    motionsNamePainter.width < 100
+                        ? Text(
+                            motionsName,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          )
                         : SizedBox(
-                            width: 120, // 设置一个固定宽度
+                            width: 100, // 设置一个固定宽度
                             child: SingleChildScrollView(
                               controller: _scrollController,
                               scrollDirection: Axis.horizontal, // 水平滚动
