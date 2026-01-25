@@ -15,8 +15,9 @@ dependencies:
 
   english_words: ^4.0.0
   provider: ^6.0.0
-  three_js: ^0.0.7
-  three_js_helpers: ^0.0.5
+  three_js: ^0.2.7
+  three_js_helpers: ^0.2.0
+  three_js_objects: ^0.2.1
   # plane_geometry: ^0.0.3
   flutter_gl: ^0.0.21
   flutter_ai_toolkit: ^0.10.0
@@ -41,6 +42,7 @@ dependencies:
   logging: ^1.3.0
   flutter_blue_plus: ^2.1.0
   permission_handler: ^12.0.1
+
 
 dev_dependencies:
   flutter_test:

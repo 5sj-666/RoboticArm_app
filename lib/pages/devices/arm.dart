@@ -11,6 +11,7 @@ import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:three_js_objects/three_js_objects.dart';
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -96,7 +97,7 @@ class FlutterGameState extends State<ArmPage> {
 
   Future<void> setup() async {
     threeJs.camera = three.PerspectiveCamera(
-      45,
+      60,
       threeJs.width / threeJs.height,
       1,
       2200,
@@ -105,20 +106,56 @@ class FlutterGameState extends State<ArmPage> {
     threeJs.scene = three.Scene();
     // init();
 
-    final gridHelper = GridHelper(100, 100, 0x888888, 0x444444);
+    final gridHelper = GridHelper(5, 5, 0x888888, 0x444444);
     threeJs.scene.add(gridHelper);
 
     final axesHelper = AxesHelper(5);
     threeJs.scene.add(axesHelper);
 
-    final ambientLight = three.AmbientLight(0xffffff, 0.3);
+    // 创建 Sky 对象
+    final sky = Sky.create();
+    // 设置天空的缩放比例
+    sky.scale.setScalar(450000);
+    // 将 Sky 添加到场景中
+    threeJs.scene.add(sky);
+    // 配置天空的属性
+    final uniforms = sky.material!.uniforms;
+
+    // 设置大气参数
+    uniforms['turbidity']['value'] = 10.0; // 浑浊度
+    uniforms['rayleigh']['value'] = 2.0; // 瑞利散射系数
+    uniforms['mieCoefficient']['value'] = 0.005; // 米散射系数
+    uniforms['mieDirectionalG']['value'] = 0.8; // 米散射方向性
+
+    // 设置太阳的位置
+    final sunPosition = three.Vector3(100, 10, -50);
+    uniforms['sunPosition']['value'] = sunPosition;
+
+    final geometry = three.PlaneGeometry(1000, 1000); // 创建一个 1000x1000 的平面
+    final options = WaterOptions(
+      color: 0x00BFFF, // 水的颜色
+      scale: 4.0, // 水面波纹的缩放比例
+      flowSpeed: 0.02, // 水流速度
+      reflectivity: 0.5, // 反射率
+    );
+    final water = Water(geometry, options);
+    water.rotation.x = -math.pi / 2; // 将水面旋转为水平面
+    water.position.y = -0.5;
+    threeJs.scene.add(water);
+
+    final directionalLight = three.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.setValues(100, 10, -50);
+    threeJs.scene.add(directionalLight);
+
+    final ambientLight = three.AmbientLight(0xffffff, 0.8);
     threeJs.scene.add(ambientLight);
 
-    final pointLight = three.PointLight(0xffffff, 0.1);
+    // final pointLight = three.PointLight(0xffffff, 0.5, 0, 0);
 
-    pointLight.position.setValues(0, 0, 0);
+    // pointLight.position.setValues(10, 10, 10);
 
-    threeJs.camera.add(pointLight);
+    // threeJs.scene.add(pointLight);
+    threeJs.scene.add(ambientLight);
     threeJs.scene.add(threeJs.camera);
 
     threeJs.camera.lookAt(threeJs.scene.position);
@@ -415,16 +452,27 @@ class FlutterGameState extends State<ArmPage> {
 
     // 启用抗锯齿
     try {
-      threeJs.renderer = three.WebGLRenderer({
-        'antialias': true, // 启用抗锯齿
-        'alpha': true, // 可选：启用透明背景
-      });
+      // threeJs.renderer = three.WebGLRenderer({
+      //   'antialias': true, // 启用抗锯齿
+      //   'alpha': true, // 可选：启用透明背景
+      // });
+      threeJs.renderer = three.WebGLRenderer(
+        three.WebGLRendererParameters(
+          width: threeJs.width,
+          height: threeJs.height,
+          antialias: true, // 启用抗锯齿
+          alpha: true, // 可选：启用透明背景
+          gl: threeJs.gl!,
+        ),
+      );
 
       threeJs.renderer?.setSize(threeJs.width, threeJs.height); // 设置渲染器大小
       threeJs.renderer?.autoClear = false; // 允许覆盖渲染
       print('Renderer initialized successfully with antialiasing');
     } catch (e) {
       print('Error initializing renderer: $e');
+    } finally {
+      print('Renderer initialization attempt completed.');
     }
 
     // To allow render overlay on top of sprited sphere 允许在精灵球顶部渲染覆盖内容
