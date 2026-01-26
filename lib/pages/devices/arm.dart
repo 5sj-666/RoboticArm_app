@@ -3,7 +3,7 @@ import 'package:robotic_arm_app/types/motions.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:three_js/three_js.dart' as three;
-import 'package:three_js_helpers/three_js_helpers.dart';
+// import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:robotic_arm_app/utils/bezierX2Y.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
@@ -97,25 +97,26 @@ class FlutterGameState extends State<ArmPage> {
 
   Future<void> setup() async {
     threeJs.camera = three.PerspectiveCamera(
-      60,
+      45,
       threeJs.width / threeJs.height,
       1,
       2200,
     );
-    threeJs.camera.position.setValues(10, 8, 8);
+    threeJs.camera.position.setValues(1.5, 1.2, 1.2);
     threeJs.scene = three.Scene();
     // init();
 
-    final gridHelper = GridHelper(5, 5, 0x888888, 0x444444);
-    threeJs.scene.add(gridHelper);
+    // final gridHelper = GridHelper(5, 5, 0x888888, 0x444444);
+    // final gridHelper = GridHelper(2, 2, 0xffffff, 0xffffff);
+    // threeJs.scene.add(gridHelper);
 
-    final axesHelper = AxesHelper(5);
-    threeJs.scene.add(axesHelper);
+    // final axesHelper = AxesHelper(5);
+    // threeJs.scene.add(axesHelper);
 
     // 创建 Sky 对象
     final sky = Sky.create();
     // 设置天空的缩放比例
-    sky.scale.setScalar(450000);
+    sky.scale.setScalar(45000);
     // 将 Sky 添加到场景中
     threeJs.scene.add(sky);
     // 配置天空的属性
@@ -131,7 +132,7 @@ class FlutterGameState extends State<ArmPage> {
     final sunPosition = three.Vector3(100, 10, -50);
     uniforms['sunPosition']['value'] = sunPosition;
 
-    final geometry = three.PlaneGeometry(1000, 1000); // 创建一个 1000x1000 的平面
+    final geometry = three.PlaneGeometry(100, 100); // 创建一个 1000x1000 的平面
     final options = WaterOptions(
       color: 0x00BFFF, // 水的颜色
       scale: 4.0, // 水面波纹的缩放比例
@@ -168,48 +169,44 @@ class FlutterGameState extends State<ArmPage> {
 
     await addGltfAsset('zero.glb', 'zero');
     var oneWrapper = three.Object3D();
-    oneWrapper.position.x = 0.5;
-    oneWrapper.position.y = 0.4;
-    // oneWrapper.add(new THREE.AxesHelper(2));
+    // oneWrapper.position.x = 0.1;
+    oneWrapper.position.y = 0.091;
     // oneWrapper.position.z = 1;
     threeJs.scene.add(oneWrapper);
-    // oneWrapper.add(new THREE.AxesHelper(2));
+    // oneWrapper.add(AxesHelper(2));
     var one = await addGltfAsset('one.glb', 'one');
 
-    //
     var twoWrapper = three.Object3D();
     twoWrapper.position.x = 0;
-    twoWrapper.position.y = 0.25;
-    twoWrapper.position.z = -0.32;
+    twoWrapper.position.y = 0.05;
+    twoWrapper.position.z = -0.067;
     threeJs.scene.add(twoWrapper);
-    // twoWrapper.add(new THREE.AxesHelper(2));
+    // twoWrapper.add(AxesHelper(2));
     var two = await addGltfAsset('two.glb', 'two');
 
     //
     var threeWrapper = three.Object3D();
     threeWrapper.position.x = 0;
-    threeWrapper.position.y = 1.5;
-    threeWrapper.position.z = -0.02;
+    threeWrapper.position.y = 0.30;
+    // threeWrapper.position.z = -0.1;
     threeJs.scene.add(threeWrapper);
-    // threeWrapper.add(new THREE.AxesHelper(2));
+    // threeWrapper.add(AxesHelper(2));
     var threeGltf = await addGltfAsset('three.glb', 'three');
 
-    //
     var fourWrapper = three.Object3D();
-    fourWrapper.position.x = 0.175;
-    fourWrapper.position.y = 0.32;
-    fourWrapper.position.z = 0.32;
+    fourWrapper.position.x = 0.036;
+    fourWrapper.position.y = 0.065;
+    fourWrapper.position.z = 0.065;
     threeJs.scene.add(fourWrapper);
-    // fourWrapper.add(new THREE.AxesHelper(2));
+    // fourWrapper.add(AxesHelper(2));
     var four = await addGltfAsset('four.glb', 'four');
 
-    //
     var fiveWrapper = three.Object3D();
     fiveWrapper.position.x = 0;
-    fiveWrapper.position.y = 1.25;
-    fiveWrapper.position.z = 0.197;
+    fiveWrapper.position.y = 0.25;
+    fiveWrapper.position.z = 0.044;
     threeJs.scene.add(fiveWrapper);
-    // fiveWrapper.add(new THREE.AxesHelper(2));
+    // fiveWrapper.add(AxesHelper(2));
     var five = await addGltfAsset('five.glb', 'five');
 
     // 类似web的requestAniamtionFrame
@@ -450,30 +447,30 @@ class FlutterGameState extends State<ArmPage> {
       }
     });
 
-    // 启用抗锯齿
-    try {
-      // threeJs.renderer = three.WebGLRenderer({
-      //   'antialias': true, // 启用抗锯齿
-      //   'alpha': true, // 可选：启用透明背景
-      // });
-      threeJs.renderer = three.WebGLRenderer(
-        three.WebGLRendererParameters(
-          width: threeJs.width,
-          height: threeJs.height,
-          antialias: true, // 启用抗锯齿
-          alpha: true, // 可选：启用透明背景
-          gl: threeJs.gl!,
-        ),
-      );
+    // // 启用抗锯齿
+    // try {
+    //   // threeJs.renderer = three.WebGLRenderer({
+    //   //   'antialias': true, // 启用抗锯齿
+    //   //   'alpha': true, // 可选：启用透明背景
+    //   // });
+    //   threeJs.renderer = three.WebGLRenderer(
+    //     three.WebGLRendererParameters(
+    //       width: threeJs.width,
+    //       height: threeJs.height,
+    //       antialias: true, // 启用抗锯齿
+    //       alpha: true, // 可选：启用透明背景
+    //       gl: threeJs.gl!,
+    //     ),
+    //   );
 
-      threeJs.renderer?.setSize(threeJs.width, threeJs.height); // 设置渲染器大小
-      threeJs.renderer?.autoClear = false; // 允许覆盖渲染
-      print('Renderer initialized successfully with antialiasing');
-    } catch (e) {
-      print('Error initializing renderer: $e');
-    } finally {
-      print('Renderer initialization attempt completed.');
-    }
+    //   threeJs.renderer?.setSize(threeJs.width, threeJs.height); // 设置渲染器大小
+    //   threeJs.renderer?.autoClear = false; // 允许覆盖渲染
+    //   print('Renderer initialized successfully with antialiasing');
+    // } catch (e) {
+    //   print('Error initializing renderer: $e');
+    // } finally {
+    //   print('Renderer initialization attempt completed.');
+    // }
 
     // To allow render overlay on top of sprited sphere 允许在精灵球顶部渲染覆盖内容
     threeJs.renderer?.autoClear = false;
@@ -518,23 +515,24 @@ class FlutterGameState extends State<ArmPage> {
   }
 
   void initGLTF(gltf, type) {
-    gltf.scene.scale = three.Vector3(5, 5, 5);
+    // gltf.scene.scale = three.Vector3(5, 5, 5);
 
     if (type == 'zero') {
-      gltf.scene.translateX(0.5);
     } else if (type == 'one') {
-      gltf.scene.translateX(0.5);
-      gltf.scene.translateX(-0.5);
     } else if (type == 'two') {
-      gltf.scene.translateZ(-0.2);
+      gltf.scene.translateX(0.045);
+      gltf.scene.translateY(0.123);
       double oneDegree = math.pi / 180;
       gltf.scene.rotation.set(oneDegree * 90, oneDegree * 90, oneDegree * 0.0);
     } else if (type == 'three') {
       gltf.scene.rotation.set(math.pi / 2, math.pi / 180 * -116, 0.0);
     } else if (type == 'four') {
       gltf.scene.rotation.set(0.0, math.pi / 180 * 90, math.pi / 180 * -90);
-      gltf.scene.translateX(-1.25);
-      gltf.scene.translateY(-0.35);
+      // gltf.scene.translateX(-1.25);
+      gltf.scene.translateX(-0.25);
+      gltf.scene.translateZ(-0.0);
+      gltf.scene.translateY(-0.07);
+      // gltf.scene.translateY(0.55);
     } else if (type == 'five') {
       gltf.scene.rotation.set(
         math.pi / 180 * 0.0,
