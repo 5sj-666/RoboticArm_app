@@ -169,6 +169,21 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                         ),
                         ElevatedButton(
                           onPressed: () {
+                            // 六个关节都使能
+                            for (int i = 0; i < 6; i++) {
+                              final motorId = 21 + i;
+                              final disableCmd = motorCmd.generateCMD(
+                                'disable',
+                                {'motorId': motorId},
+                              );
+
+                              bleCubit.sendSingleCmd(disableCmd);
+                            }
+                          },
+                          child: Text('停止'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
                             // 设置当前为零点，并移动到零点
                             for (int i = 0; i < 6; i++) {
                               final motorId = 21 + i;

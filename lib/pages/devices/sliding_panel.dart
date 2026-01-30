@@ -35,14 +35,13 @@ class SlidingPanelContent extends StatelessWidget {
 
     void _updateJointEnd(double newVal, int index) {
       print('---关节变化结束---$newVal --- $index');
+      int motorId = 21 + index;
 
       /// 将速度指令和位置指令发送给单片机
       final motorCmd = MotorCmdGenerator();
-      final enableCmd = motorCmd.generateCMD('enable', {'motorId': 21});
+      final enableCmd = motorCmd.generateCMD('enable', {'motorId': motorId});
       bleCubit.sendSingleCmd(enableCmd);
       motorLogCubit.addLog(cmd: enableCmd);
-
-      int motorId = 21 + index;
 
       final runmodeCmd = motorCmd.generateCMD('run_mode', {
         'motorId': motorId,
@@ -94,8 +93,8 @@ class SlidingPanelContent extends StatelessWidget {
                   value: state.joint2,
                   onValueChanged: _updateJointValue,
                   index: 1,
-                  min: -100.0,
-                  max: 100.0,
+                  min: -90.0,
+                  max: 90.0,
                   onChangeEnd: _updateJointEnd,
                   disable: motionsCubit.state.status != MotionStatus.idle,
                 ),

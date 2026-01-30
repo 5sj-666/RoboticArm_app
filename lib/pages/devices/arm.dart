@@ -226,8 +226,11 @@ class FlutterGameState extends State<ArmPage> {
             rt.deltaDeg[i] = 0.0 - preparingInitPosition[i];
 
             rt.result[i * 2] = 0.0;
-            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0).clamp(0, 15);
+            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 180 * math.pi / 2.0).abs();
           }
+
+          bleCubit.sendMsg(rt.result);
+
           // 如果当前的动作位置和目标位置完全一致，则直接切换到ready状态
           bool allZero = rt.deltaDeg.every((deg) => deg.abs() < 0.001);
           if (allZero) {
@@ -254,6 +257,13 @@ class FlutterGameState extends State<ArmPage> {
               'joint${j + 1}',
               deg.clamp(-145.0, 145.0),
             );
+            // 第二个关节
+            if (j == 1) {
+              jointsCubit.setSingleJoint(
+                'joint${j + 1}',
+                deg.clamp(-90.0, 90.0),
+              );
+            }
           }
         }
 
@@ -279,10 +289,10 @@ class FlutterGameState extends State<ArmPage> {
             rt.deltaDeg[i] =
                 rt.curKeyframe!.positions[i] - preparingInitPosition[i];
 
+            // double deltaTime = rt.curKeyframe!.time - rt.preKeyframe!.time;
             // 因为是初始化，所以将匀速位置和速度直接发送给单片机
-            rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi)
-                .clamp(-145.0, 145.0);
-            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0).clamp(0, 15);
+            rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi);
+            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0 / 180 * math.pi).abs();
           }
           bleCubit.sendMsg(rt.result);
           print('---准备动作中，目标位置差值: ${rt.deltaDeg}');
@@ -308,6 +318,13 @@ class FlutterGameState extends State<ArmPage> {
               'joint${j + 1}',
               deg.clamp(-145.0, 145.0),
             );
+            // 第二个关节
+            if (j == 1) {
+              jointsCubit.setSingleJoint(
+                'joint${j + 1}',
+                deg.clamp(-90.0, 90.0),
+              );
+            }
           }
           // 准备完成，切换到ready状态
           motionsCubit.updateStatus(MotionStatus.ready);
@@ -319,6 +336,13 @@ class FlutterGameState extends State<ArmPage> {
               'joint${j + 1}',
               deg.clamp(-145.0, 145.0),
             );
+            // 第二个关节
+            if (j == 1) {
+              jointsCubit.setSingleJoint(
+                'joint${j + 1}',
+                deg.clamp(-90.0, 90.0),
+              );
+            }
           }
         }
       } else if (motionsCubit.state.status == MotionStatus.running) {
@@ -379,7 +403,12 @@ class FlutterGameState extends State<ArmPage> {
             for (int i = 0; i < rt.curKeyframe!.positions.length; i++) {
               rt.deltaDeg[i] =
                   rt.curKeyframe!.positions[i] - rt.preKeyframe!.positions[i];
+
+              rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi);
+              rt.result[i * 2 + 1] =
+                  (rt.deltaDeg[i] / rt.deltaTime / 180 * math.pi).abs();
             }
+            bleCubit.sendMsg(rt.result);
 
             /// 获取控制点
             rt.controlPoints = timingFuncToDoubleList(
@@ -411,18 +440,21 @@ class FlutterGameState extends State<ArmPage> {
             jointsCubit.setSingleJoint('joint${i + 1}', curDeg);
 
             /// 位置： 单片机需要 i *2 是位置，  边界值为-145.0, 145.0
-            rt.result[i * 2] = (curDeg / 180 * math.pi).clamp(-145.0, 145.0);
+            // rt.result[i * 2] = (curDeg / 180 * math.pi).clamp(-145.0/ 180 * math.pi, 145.0/ 180 * math.pi);
+            // 尝试：不再计算中间位置（因为运行起来会有卡顿的感觉，就是电机停一下，再运动）
+            // 所以，将最终关键帧位置直接赋值
+            rt.result[i * 2] = rt.curKeyframe!.positions[i] / 180 * math.pi;
 
-            /// 速度： delta距离 / delta时间 = 速度 边界值为0.0, 15.0
+            /// 速度（弧度/s）： delta距离 / delta时间 = 速度 边界值为0.0, 15.0
             rt.result[i * 2 + 1] =
                 ((rt.deltaDeg[i] * ratio - rt.deltaDeg[i] * rt.preRatio) /
                         dt /
                         180 *
                         math.pi)
-                    .clamp(-15.0, 15.0);
+                    .abs();
           }
 
-          print('位置指令: ${rt.result}');
+          // print('位置指令: ${rt.result}');
 
           /// 由于发送指令太快会导致指令积压，造成动作严重延迟
           /// 所以在此做抽帧操作，比如将10个帧抽离合并成一个帧发送
@@ -624,40 +656,32 @@ List<double> timingFuncToDoubleList(String? input) {
 }
 
 /// 合并帧，将多个帧合并起来，并发送给单片机
-// List<double> combinPostion(List<List<double>> positionArr) {
 void combinPostion(List<List<double>> positionArr, BleCubit bleCubit) {
-  List<double> result = List.filled(12, 0.0, growable: false);
-  print('combinPostion: ${positionArr.toString()}');
+  // List<double> result = List.filled(12, 0.0, growable: false);
+  // print('combinPostion: ${positionArr.toString()}');
 
-  /// 位置只取最后一帧
-  for (int i = 0; i < positionArr.length; i++) {
-    for (int j = 0; j < positionArr[i].length; j++) {
-      if (j % 2 == 0) {
-        // i是位置
-        // 最后一个数组时候，直接将位置赋值给result
-        if (i == positionArr.length - 1) {
-          result[j] = positionArr[i][j];
-        }
-      } else {
-        // i + 1是速度
-        /// 平均速度就是 所有速度的总和 / 个数, 设置最小转动速度，以免指令积压
-        result[j] += (positionArr[i][j] / positionArr.length);
-        // result[j] += positionArr[i][j] / positionArr.length;
-        // result[j] = 2.0;
-      }
-    }
+  // /// 位置只取最后一帧
+  // for (int i = 0; i < positionArr.length; i++) {
+  //   for (int j = 0; j < positionArr[i].length; j++) {
+  //     if (j % 2 == 0) {
+  //       // i是位置
+  //       // 最后一个数组时候，直接将位置赋值给result
+  //       if (i == positionArr.length - 1) {
+  //         result[j] = positionArr[i][j];
+  //       }
+  //     } else {
+  //       // i + 1是速度
+  //       /// 平均速度就是 所有速度的总和 / 个数, 设置最小转动速度，以免指令积压
+  //       result[j] += (positionArr[i][j] / positionArr.length);
+  //       // result[j] += positionArr[i][j] / positionArr.length;
+  //       // result[j] = 2.0;
+  //     }
+  //   }
+  // }
+  // print('---合并帧$result');
 
-    /// 设置最低和最高速度
-    for (int i = 0; i < result.length; i++) {
-      if (i % 2 == 1) {
-        result[i] = result[i].abs().clamp(0.5, 15);
-      }
-    }
-  }
-  print('---合并帧$result');
+  // // bleCubit.sendMsg(result);
 
-  bleCubit.sendMsg(result);
-
-  /// 返回结果帧
-  // return result;
+  // /// 返回结果帧
+  // // return result;
 }

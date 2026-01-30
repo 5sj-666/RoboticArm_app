@@ -3,7 +3,9 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:robotic_arm_app/utils/motorCmd.dart';
+// import 'package:robotic_arm_app/utils/motorCmd.dart';
+import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
+import 'dart:math' as math;
 
 // 未打开蓝牙，已打开蓝牙， 未知蓝牙（ios的未授权状态）， 未扫描， 扫描中， 扫描完成， 未连接，连接中，已连接
 enum BleStatus {
@@ -80,7 +82,9 @@ class BleState {
 }
 
 class BleCubit extends Cubit<BleState> {
-  BleCubit() : super(BleState());
+  final MotorLogCubit? _motorLogCubit;
+
+  BleCubit(this._motorLogCubit) : super(BleState());
 
   init() async {
     print('初始化蓝牙');
@@ -219,7 +223,7 @@ class BleCubit extends Cubit<BleState> {
           // print("特征值：$value");
           emit(state.copyWith(characteristic: characteristic));
           await setNotify();
-          characteristic.write([1, 2, 3]);
+          // characteristic.write([1, 2, 3]);
         }
       }
     });
@@ -230,7 +234,11 @@ class BleCubit extends Cubit<BleState> {
       final subscription = state.characteristic!.lastValueStream.listen((
         List<int> value,
       ) {
-        print('----接收到来自蓝牙的通知: $value');
+        print('----接收到来自蓝牙的通知 : $value');
+        // _motorLogCubit.addLog(cmd: value);
+        if (_motorLogCubit != null) {
+          _motorLogCubit.addLog(cmd: value);
+        }
         // lastValueStream 触发场景：
         // - 调用 read() 后
         // - 调用 write() 后
@@ -298,11 +306,30 @@ class BleCubit extends Cubit<BleState> {
   /// positions表示直接将六个关节的位置和速度，以len=12的数组发给单片机
   sendMsg(List<double> message) async {
     if (state.characteristic != null) {
+      for (int i = 0; i < message.length; i++) {
+        if (i % 2 == 0) {
+          // 位置限制 弧度
+          message[i] = message[i].clamp(
+            -145 / 180 * math.pi,
+            145 / 180 * math.pi,
+          );
+        } else {
+          // 速度限制 弧度/s
+          message[i] = message[i].clamp(0.1, 15);
+        }
+      }
+      // 第二个关节特殊限制
+      message[2] = message[2].clamp(-90 / 180 * math.pi, 90 / 180 * math.pi);
+
+      print('---发送帧${message.toString()}');
+
       //接受的是double数组，将其转为unit8List
       Float32List floatList = Float32List.fromList(message);
       // 转换为字节数组
       Uint8List byteList = floatList.buffer.asUint8List();
+      // print('---发送帧$byteList');
       await state.characteristic!.write(byteList, withoutResponse: false);
+
       // state.characteristic.
     } else {
       // 无特征值时的错误处理
