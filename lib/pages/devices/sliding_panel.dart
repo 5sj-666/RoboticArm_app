@@ -57,6 +57,11 @@ class SlidingPanelContent extends StatelessWidget {
       bleCubit.sendSingleCmd(speedCmd);
       motorLogCubit.addLog(cmd: speedCmd);
 
+      // 第二个关节旋转方向与3D模型相反，所以位置取反
+      if (motorId == 22) {
+        newVal = -newVal;
+      }
+
       final locationCmd = motorCmd.generateCMD('loc_ref', {
         'motorId': motorId,
         'loc_ref': newVal / 180 * 3.14,

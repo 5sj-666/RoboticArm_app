@@ -318,8 +318,8 @@ class BleCubit extends Cubit<BleState> {
           message[i] = message[i].clamp(0.1, 15);
         }
       }
-      // 第二个关节特殊限制
-      message[2] = message[2].clamp(-90 / 180 * math.pi, 90 / 180 * math.pi);
+      // 第二个关节特殊限制 实体旋转跟3d旋转相反，所以位置取反，速度取正
+      message[2] = -message[2].clamp(-90 / 180 * math.pi, 90 / 180 * math.pi);
 
       print('---发送帧${message.toString()}');
 

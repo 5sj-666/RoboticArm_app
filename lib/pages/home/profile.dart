@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:robotic_arm_app/utils/sharedPreferences.dart';
+import 'package:robotic_arm_app/utils/motorCmd.dart';
+import 'package:robotic_arm_app/cubit/ble_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final mortorCmd = MotorCmdGenerator();
+    BleCubit bleCubit = BlocProvider.of<BleCubit>(context);
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -66,6 +72,61 @@ class ProfilePage extends StatelessWidget {
               title: Text('删除所有记录'),
               onTap: () {
                 SharedPrefsStorage.clearAllData();
+              },
+            ),
+
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('使能电机'),
+              onTap: () {
+                ///使能电机
+                final cmd = mortorCmd.generateCMD('enable', {'motorId': 21});
+                bleCubit.sendSingleCmd(cmd);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('停止电机'),
+              onTap: () {
+                /// 停止电机
+                final cmd = mortorCmd.generateCMD('disable', {'motorId': 21});
+                bleCubit.sendSingleCmd(cmd);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('设置运行模式'),
+              onTap: () {
+                ///设置runmode
+                final cmd = mortorCmd.generateCMD('run_mode', {
+                  'motorId': 21,
+                  'run_mode': 1,
+                });
+                bleCubit.sendSingleCmd(cmd);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('设置速度'),
+              onTap: () {
+                ///设置速度
+                final cmd = mortorCmd.generateCMD('limit_spd', {
+                  'motorId': 21,
+                  'limit_spd': 1.0,
+                });
+                bleCubit.sendSingleCmd(cmd);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('设置位置'),
+              onTap: () {
+                ///设置位置
+                 final cmd = mortorCmd.generateCMD('loc_ref', {
+                  'motorId': 21,
+                  'loc_ref': 1.0,
+                });
+                bleCubit.sendSingleCmd(cmd);
               },
             ),
           ],

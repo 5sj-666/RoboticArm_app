@@ -102,7 +102,7 @@ class FlutterGameState extends State<ArmPage> {
       1,
       2200,
     );
-    threeJs.camera.position.setValues(1.5, 1.2, 1.2);
+    threeJs.camera.position.setValues(2.5, 0.6, 0);
     threeJs.scene = three.Scene();
     // init();
 
@@ -240,8 +240,8 @@ class FlutterGameState extends State<ArmPage> {
         }
         // 将机械臂姿态移动到第一帧位置
         rt.elapsedTime += dt;
-        // 直接是等比例速度移动到第一帧位置, 过渡时间为2秒
-        double progress = (rt.elapsedTime) / 2.0;
+        // 直接是等比例速度移动到第一帧位置, 过渡时间为3秒
+        double progress = (rt.elapsedTime) / 3.0;
 
         if (progress >= 1.0) {
           for (int j = 0; j < 6; j++) {
@@ -292,7 +292,7 @@ class FlutterGameState extends State<ArmPage> {
             // double deltaTime = rt.curKeyframe!.time - rt.preKeyframe!.time;
             // 因为是初始化，所以将匀速位置和速度直接发送给单片机
             rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi);
-            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 2.0 / 180 * math.pi).abs();
+            rt.result[i * 2 + 1] = (rt.deltaDeg[i] / 3.0 / 180 * math.pi).abs();
           }
           bleCubit.sendMsg(rt.result);
           print('---准备动作中，目标位置差值: ${rt.deltaDeg}');
@@ -307,8 +307,8 @@ class FlutterGameState extends State<ArmPage> {
         }
         // 将机械臂姿态移动到第一帧位置
         rt.elapsedTime += dt;
-        // 直接是等比例速度移动到第一帧位置, 过渡时间为2秒
-        double progress = (rt.elapsedTime) / 2.0;
+        // 直接是等比例速度移动到第一帧位置, 过渡时间为3秒
+        double progress = (rt.elapsedTime) / 3.0;
 
         // 最后一帧有溢出的可能性，比如progress = 1.0079999999999987,
         if (progress >= 1.0) {
@@ -680,7 +680,7 @@ void combinPostion(List<List<double>> positionArr, BleCubit bleCubit) {
   // }
   // print('---合并帧$result');
 
-  // // bleCubit.sendMsg(result);
+  // bleCubit.sendMsg(result);
 
   // /// 返回结果帧
   // // return result;

@@ -4,7 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:core';
-import 'package:logger/logger.dart';
+// import 'package:logger/logger.dart';
 import 'dart:convert';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/pages/home/home_cubit.dart';
@@ -15,7 +15,7 @@ import 'package:auto_route/auto_route.dart';
 
 import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 
-final logger = Logger();
+// final logger = Logger();
 
 final String _apiKey = dotenv.env['API_KEY'] ?? '';
 
@@ -81,23 +81,25 @@ class _ChatWidgetState extends State<ChatWidget> {
             description: String, // 动作描述
             keyframes: [ // 关键帧列表,
                 {
-                    time: double, // 时间要加上前一帧的时间,第一帧必须是0.0 。举个例子： 第二帧是1.3 秒, 第三帧是0.7秒,那么第三帧的time就是2.0秒
-                    positions: [], // 六个关节位置, 所有关节的位置单位是度, 范围是-145度至145度(第二个关节的位置是-100度至100度), 例子[-30, -45,60,20,10,0]; 格外注意机械臂关机的可活动范围,不要生成的角度很小
+                    //注意: 时间要加上前一帧的时间,且第一帧的time必须是0.0,因为他是动作初始化的姿态。
+                    //举个例子： 第一帧的time必须是0.0秒; 第二帧运行时间是1.3秒, 那么第二帧的time是(1.3 + 0.0)秒; 第三帧运行时间是2.2秒,那么它的time是(2.2 + 1.3)秒, 以此类推
+                    time: double, 
+                    // 六个关节位置, 所有关节的位置单位是度, 范围是-145度至145度(第二个关节的位置是-100度至100度), 例子[-30, -45,60,20,10,0]; 格外注意机械臂关机的可活动范围,不要生成的角度很小
+                    // 第三个和第五个关节在现实安装中是反着装的,所以你生成动作的时候，需要将这个两个关节的角度取反, 也就是说如果你想让第三个关节转30度,你需要生成-30度; 如果你想让第五个关节转20度,你需要生成-20度。
+                    positions: [], 
                     timingFunction: String, // 三次贝塞尔曲线: '控制点1.x, 控制点2.x, 控制点1.y, 控制点2.y' 示例: '.2,.3,.6,.9'
                 },
                 ...
             ]
           }
           请确保输出的json数据格式正确且完整,并且时间和位置数据合理。
-          注意要点: 关键帧的时间要加上前一帧的时间；
-          如果对话中有其他实体,那么就假设机械臂与该实体一样大小。
           '''),
       );
       // 然后在回复中解释他的动作设计思路,动作适合什么场景使用。
 
       _chat = _model.startChat();
     } catch (e) {
-      _showError(e.toString());
+      // _showError(e.toString());
     }
 
     ///  读取本地存储的历史对话

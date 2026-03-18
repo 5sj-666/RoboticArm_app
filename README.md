@@ -31,7 +31,24 @@ dart pub run build_runner build
 
 API_KEY存在.env文件中，使用flutter_dotenv加载
 
+动作运行的生命周期：
+  空闲 -> 准备（应用一个动作） -> 准备中 -> 就绪 -> 运行中（<->暂停） -> 结束（准备）
+   ^
+   ｜
+   下箭头
+  归零
 
+蓝牙连接步骤：
+1. 设置logLevel
+2. 查询是否支持蓝牙
+3. 判断蓝牙是否授权（ios还没授权时的状态为: BluetoothAdapterState.unknown）
+3.1 未授权需要请求授权
+3.2 异常状态处理，比如断开重连等。  
+4. 蓝牙打开状态时，可扫描附近设备
+5. 连接目标设备
+6. 发送数据（调用services的character写入数据writeC）
+6.1 监测notify
+7. 断开连接
 
 ## Getting Started
 
@@ -47,5 +64,30 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 
+# 运行指令记录：
+使能： [3, 0, 253, motorId, 5, 112, 0, 0, 1, 0, 0, 0]
 
-## 一些品牌机械参考： Niryo ned2
+停止： [4, 0, 253, motorId, 5, 112, 0, 0, 1, 0, 0, 0]
+
+位置模式指令: 
+runmode： [18, 0, 253, motorId, 5, 112, 0, 0, runmode, 0, 0, 0] // 0: 运控模式 1: 位置模式 2: 速度模式 3: 力矩模式
+
+speed： [18, 0, 253, motorId, 23, 112, 0, 0, 63, 128, 0, 0]  // 后四位是速度的unit8Array
+
+location： [18, 0, 253, motorId, 22, 112, 0, 0, 63, 128, 0, 0]  // 后四位是位置的unit8Array
+
+# 关键帧数据结构更改
+目前改为：
+{
+    name: String,
+    author: String,
+    description: String,
+    keyframes: [
+        {
+            time: double,
+            joints: [], // 六个关节位置
+            bezier: [], // 控制点1和控制点2
+        },
+        ...
+    ]
+}
