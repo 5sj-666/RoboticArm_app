@@ -7,7 +7,7 @@ import 'dart:core';
 // import 'package:logger/logger.dart';
 import 'dart:convert';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
-import 'package:robotic_arm_app/pages/home/home_cubit.dart';
+import 'package:robotic_arm_app/pages/home_cubit.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/app_router.dart';
@@ -342,25 +342,25 @@ class _ChatWidgetState extends State<ChatWidget> {
     }
   }
 
-  void _showError(String message) {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Something went wrong'),
-          content: SingleChildScrollView(child: SelectableText(message)),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showError(String message) {
+  //   showDialog<void>(
+  //     context: context,
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         title: const Text('Something went wrong'),
+  //         content: SingleChildScrollView(child: SelectableText(message)),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //             child: const Text('OK'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 }
 
 class MessageWidget extends StatelessWidget {

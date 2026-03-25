@@ -1,5 +1,5 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:robotic_arm_app/pages/home/HomeScreen.dart';
+import 'package:robotic_arm_app/pages/HomeScreen.dart';
 import 'package:robotic_arm_app/pages/motions/design_motion.dart';
 import 'package:robotic_arm_app/pages/waterfall/search.dart';
 

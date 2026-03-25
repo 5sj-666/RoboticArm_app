@@ -305,6 +305,10 @@ class BleCubit extends Cubit<BleState> {
   /// 发送消息给单片机，数据格式List.length === 12 ； i是位置，i+1是速度
   /// positions表示直接将六个关节的位置和速度，以len=12的数组发给单片机
   sendMsg(List<double> message) async {
+    if (state.status != BleStatus.connected) {
+      print('---蓝牙未连接，无法发送消息---');
+      return;
+    }
     if (state.characteristic != null) {
       for (int i = 0; i < message.length; i++) {
         if (i % 2 == 0) {

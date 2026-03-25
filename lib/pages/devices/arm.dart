@@ -171,6 +171,7 @@ class FlutterGameState extends State<ArmPage> {
     var oneWrapper = three.Object3D();
     // oneWrapper.position.x = 0.1;
     oneWrapper.position.y = 0.091;
+    oneWrapper.rotateY(math.pi);
     // oneWrapper.position.z = 1;
     threeJs.scene.add(oneWrapper);
     // oneWrapper.add(AxesHelper(2));
@@ -524,10 +525,10 @@ class FlutterGameState extends State<ArmPage> {
         fiveWrapper.add(five?.scene);
 
         oneWrapper.rotation.y = -(jointsCubit.state.joint1 * math.pi) / 180;
-        twoWrapper.rotation.z = -(jointsCubit.state.joint2 * math.pi) / 180;
-        threeWrapper.rotation.z = -(jointsCubit.state.joint3 * math.pi) / 180;
-        fourWrapper.rotation.y = -(jointsCubit.state.joint4 * math.pi) / 180;
-        fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
+        twoWrapper.rotation.z = (jointsCubit.state.joint2 * math.pi) / 180;
+        threeWrapper.rotation.z = (jointsCubit.state.joint3 * math.pi) / 180;
+        fourWrapper.rotation.y = (jointsCubit.state.joint4 * math.pi) / 180;
+        fiveWrapper.rotation.z = (jointsCubit.state.joint5 * math.pi) / 180;
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       });

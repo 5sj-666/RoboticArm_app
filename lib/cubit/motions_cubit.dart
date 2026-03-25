@@ -198,9 +198,14 @@ class MotionsCubit extends Cubit<MotionsState> {
     // emit(state.copyWith(motions: updatedMotions));
   }
 
-  void deleteMotion(String motion) {
+  void deleteMotion(String name) {
     // final updatedMotions = List<Motion>.from(state.motions)..remove(motion);
     // emit(state.copyWith(motions: updatedMotions));
+    final key = 'motion_$name';
+    SharedPrefsStorage.deleteData(key);
+    state.motions.removeWhere((motion) => motion.name == name);
+    // state.motions;
+    emit(state.copyWith(motions: state.motions));
   }
 
   void deleteMotionById(String id) {

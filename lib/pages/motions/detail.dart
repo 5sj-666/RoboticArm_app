@@ -4,8 +4,9 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/app_router.dart';
-import 'package:robotic_arm_app/pages/home/home_cubit.dart';
+import 'package:robotic_arm_app/pages/home_cubit.dart';
 import 'dart:convert';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 @RoutePage()
 class DetailPage extends StatelessWidget {
@@ -153,7 +154,8 @@ class DetailPage extends StatelessWidget {
                   SizedBox(
                     height: 200,
                     child: SingleChildScrollView(
-                      child: Text(json.encode(motion.toJson())),
+                      // child: Text(json.encode(motion.toJson())),
+                      child: MarkdownBody(data: json.encode(motion.toJson())),
                     ),
                   ),
                 ],

@@ -1637,6 +1637,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.2.0"
+  three_js_urdf_parser:
+    dependency: "direct main"
+    description:
+      name: three_js_urdf_parser
+      sha256: b93046174c09b82ec507e66d3273b35cdc45fa3232de18a11a6127d3901e7369
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.0"
   timing:
     dependency: transitive
     description:

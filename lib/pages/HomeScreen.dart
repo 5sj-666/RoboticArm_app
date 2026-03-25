@@ -1,10 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'motionsWaterfall.dart';
-import 'profile.dart';
-import 'ai_chat.dart';
-import 'devices_page.dart';
-import './home_cubit.dart';
+import 'waterfall/index.dart';
+import 'profile/index.dart';
+import 'AI/index.dart';
+import 'devices/index.dart';
+import 'home_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 @RoutePage()

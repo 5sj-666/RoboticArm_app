@@ -5,13 +5,14 @@ import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'package:robotic_arm_app/app_router.dart';
+import 'LongPressConfirmPopover.dart';
 
 class WaterfallPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final motionList = BlocProvider.of<MotionsCubit>(context);
-    // print('----waterfall${motionList.state.motions}');
-    final list = motionList.state.motions;
+    final motionsCubit = BlocProvider.of<MotionsCubit>(context);
+    // print('----waterfall${motionsCubit.state.motions}');
+    final list = motionsCubit.state.motions;
     // print('----waterfall$list');
     for (int i = 0; i < list.length; i++) {
       // print('瀑布流: ${list[i].name}');
@@ -43,56 +44,58 @@ class WaterfallPage extends StatelessWidget {
         builder: (context, state) {
           // logger.w('更新motiosnCubit状态监听');
           final screenWidth = MediaQuery.of(context).size.width;
-          return ListView(
-            // 关键：让ListView高度适应Wrap内容（否则会无限延伸）
-            shrinkWrap: true,
-            children: [
-              SizedBox(
-                width: screenWidth,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          return motionsCubit.state.motions.isNotEmpty
+              ? ListView(
+                  // 关键：让ListView高度适应Wrap内容（否则会无限延伸）
+                  shrinkWrap: true,
                   children: [
                     SizedBox(
-                      width: screenWidth / 2,
-                      // decoration: BoxDecoration(color: Colors.green),
-                      child: Column(
+                      width: screenWidth,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (
-                            int i = 0;
-                            i < motionList.state.motions.length;
-                            i += 2
-                          )
-                            MotionCard(
-                              motion: motionList.state.motions[i],
-                              index: i,
+                          SizedBox(
+                            width: screenWidth / 2,
+                            // decoration: BoxDecoration(color: Colors.green),
+                            child: Column(
+                              children: [
+                                for (
+                                  int i = 0;
+                                  i < motionsCubit.state.motions.length;
+                                  i += 2
+                                )
+                                  MotionCard(
+                                    motion: motionsCubit.state.motions[i],
+                                    index: i,
+                                  ),
+                              ],
                             ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: screenWidth / 2,
-                      // decoration: BoxDecoration(color: Colors.yellow),
-                      child: Column(
-                        children: [
-                          for (
-                            int i = 1;
-                            i < motionList.state.motions.length;
-                            i += 2
-                          )
-                            MotionCard(
-                              motion: motionList.state.motions[i],
-                              index: i,
+                          ),
+                          SizedBox(
+                            width: screenWidth / 2,
+                            // decoration: BoxDecoration(color: Colors.yellow),
+                            child: Column(
+                              children: [
+                                for (
+                                  int i = 1;
+                                  i < motionsCubit.state.motions.length;
+                                  i += 2
+                                )
+                                  MotionCard(
+                                    motion: motionsCubit.state.motions[i],
+                                    index: i,
+                                  ),
+                              ],
                             ),
+                          ),
                         ],
+                        // for (int i = 0; i < list.length; i += 2)
+                        //           MotionCard(motion: list[i], index: i),
                       ),
                     ),
                   ],
-                  // for (int i = 0; i < list.length; i += 2)
-                  //           MotionCard(motion: list[i], index: i),
-                ),
-              ),
-            ],
-          );
+                )
+              : EmptyDataWidget();
         },
       ),
     );
@@ -111,11 +114,23 @@ class MotionCard extends StatelessWidget {
     double screenWidth = MediaQuery.of(context).size.width;
     double cardWidth = screenWidth / 2;
     // double ramdomHeight = index % 2 == 0 ? 20 : 0;
+    final motionsCubit = BlocProvider.of<MotionsCubit>(context);
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         print('---点击跳转');
         context.router.push(DetailRoute(id: motion.id));
+      },
+      onLongPressEnd: (details) {
+        showLongPressConfirmPopover(
+          context: context,
+          touchPoint: details.globalPosition,
+          onConfirm: (String name, String id) {
+            motionsCubit.deleteMotion(name);
+          },
+          name: motion.name,
+          id: motion.id,
+        );
       },
       child: SizedBox(
         width: cardWidth,
@@ -169,6 +184,34 @@ class MotionCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class EmptyDataWidget extends StatelessWidget {
+  final String? text;
+  final double? height;
+
+  const EmptyDataWidget({super.key, this.text = '暂无数据', this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height ?? MediaQuery.of(context).size.height * 0.4,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 云朵图标
+            Icon(Icons.cloud_outlined, size: 80, color: Colors.grey[350]),
+            const SizedBox(height: 20),
+            Text(
+              text ?? '暂无数据',
+              style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+            ),
+          ],
         ),
       ),
     );
