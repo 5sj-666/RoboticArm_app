@@ -15,9 +15,12 @@ Map<String, int> jointIdMap = {
 class Keyframe {
   String? name; // 保存至本地存储的标题 关键帧标题 kf + 用户输入的标题
   List<double> positions;
-  double time; // 秒
+  double time; // 秒 帧运行耗费的时间
   String? createTime; // 创建时间(时间戳)
   String? timingFunction = '.1,.1,.9,.9';
+  int repeatCount = 0;
+  double markerTimeStart = 0.0; // 时间轴上标记的位置（在时间轴上的哪一时刻开始运行），单位为秒
+  double markerTimeEnd = 0.0; // 时间轴上标记的位置（在时间轴上的哪一时刻结束运行），单位为秒
 
   Keyframe({
     this.name,
@@ -25,6 +28,9 @@ class Keyframe {
     this.time = 0.0,
     this.createTime,
     this.timingFunction,
+    this.repeatCount = 0,
+    this.markerTimeStart = 0.0,
+    this.markerTimeEnd = 0.0,
   });
 
   factory Keyframe.fromJson(Map<String, dynamic> json) =>

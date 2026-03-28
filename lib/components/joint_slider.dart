@@ -44,7 +44,7 @@ class JointSlider extends StatelessWidget {
             ),
           ),
           child: Text(
-            '$title: ${value.toStringAsFixed(4)}°',
+            '$title: ${value.toStringAsFixed(2)}°',
             textAlign: TextAlign.left,
             style: TextStyle(
               fontSize: 12,

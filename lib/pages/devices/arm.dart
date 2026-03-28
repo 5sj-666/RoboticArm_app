@@ -371,8 +371,21 @@ class FlutterGameState extends State<ArmPage> {
             rt.preKeyframe = rt.keyframeList[rt.keyframeCursor];
           }
 
+          void computedPotionsDelta() {
+            /// 计算位置差
+            for (int i = 0; i < rt.curKeyframe!.positions.length; i++) {
+              rt.deltaDeg[i] =
+                  rt.curKeyframe!.positions[i] - rt.preKeyframe!.positions[i];
+
+              rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi);
+              rt.result[i * 2 + 1] =
+                  (rt.deltaDeg[i] / rt.deltaTime / 180 * math.pi).abs();
+            }
+            return;
+          }
+
           /// 如果当前的经历时间大于当前关键帧的时间，则需要赋值下一个关键帧
-          if (rt.elapsedTime >= rt.curKeyframe!.time) {
+          if (rt.elapsedTime >= rt.curKeyframe!.markerTimeEnd) {
             rt.keyframeCursor += 1;
 
             /// 切换关键帧可能导致方向变化，会影响计算，所以直接存储的帧直接计算并发送
@@ -389,40 +402,83 @@ class FlutterGameState extends State<ArmPage> {
             }
             rt.curKeyframe = rt.keyframeList[rt.keyframeCursor];
             rt.preKeyframe = rt.keyframeList[rt.keyframeCursor - 1];
+            rt.deltaTime = rt.curKeyframe!.time;
+            rt.repeatCount = 0;
 
-            // if (rt.curKeyframe!.time <= rt.preKeyframe!.time) {
-            //   motionsCubit.updateStatus(MotionStatus.prepare);
-            //   rt.elapsedTime = 0;
-            //   rt.keyframeCursor = 0;
-            //   return;
-            // }
+            computedPotionsDelta();
 
-            /// 计算时间差
-            rt.deltaTime = rt.curKeyframe!.time - rt.preKeyframe!.time;
-
-            /// 计算位置差
-            for (int i = 0; i < rt.curKeyframe!.positions.length; i++) {
-              rt.deltaDeg[i] =
-                  rt.curKeyframe!.positions[i] - rt.preKeyframe!.positions[i];
-
-              rt.result[i * 2] = (rt.curKeyframe!.positions[i] / 180 * math.pi);
-              rt.result[i * 2 + 1] =
-                  (rt.deltaDeg[i] / rt.deltaTime / 180 * math.pi).abs();
-            }
             bleCubit.sendMsg(rt.result);
 
             /// 获取控制点
             rt.controlPoints = timingFuncToDoubleList(
               rt.curKeyframe!.timingFunction,
             );
+
+            // 缓存缓存帧
+            if (rt.curKeyframe!.repeatCount > 0) {
+              rt.cacheKeyframe = Keyframe(
+                name: 'cache',
+                positions: List.from(
+                  rt.keyframeList[rt.keyframeCursor - 1].positions,
+                ),
+                time: rt.keyframeList[rt.keyframeCursor].time,
+                timingFunction:
+                    rt.keyframeList[rt.keyframeCursor].timingFunction,
+                repeatCount: rt.keyframeList[rt.keyframeCursor].repeatCount,
+                markerTimeStart:
+                    rt.keyframeList[rt.keyframeCursor].markerTimeStart,
+                markerTimeEnd: rt.keyframeList[rt.keyframeCursor].markerTimeEnd,
+              );
+            } else {
+              rt.cacheKeyframe = null;
+            }
           }
+
+          /// 新功能： 需要考虑重复次数的问题。A帧-》B帧，如果B帧的重复次数为2（意思是执行b帧的次数），
+          /// 第0次： A帧-》B帧， 第1次： B帧-》A帧 =〉B帧  总流程为 A帧-》B帧-》A帧-》B帧
+          /// 这其中的间隔时间是按B帧的时间来计算。
+          /// 1，2 ； 2，1 ；1，2
+          /// 当运行时间大于当前关键的起始时间+运行时间（这是正常运行的）
+          /// 大于这个时间的话，就是开始重复运行的阶段
+          if (rt.elapsedTime >=
+              rt.curKeyframe!.markerTimeStart + rt.curKeyframe!.time) {
+            double localElapsedTime =
+                rt.elapsedTime -
+                rt.curKeyframe!.markerTimeStart -
+                rt.curKeyframe!.time;
+            //关键： 计算repeatCount和赋值preKeyframe和curKeyframe
+            if (localElapsedTime > rt.curKeyframe!.time * 2 * rt.repeatCount) {
+              rt.repeatCount += 0.5;
+
+              if (rt.repeatCount % 1 == 0) {
+                rt.preKeyframe = rt.cacheKeyframe;
+                rt.curKeyframe = rt.keyframeList[rt.keyframeCursor];
+              } else {
+                rt.preKeyframe = rt.keyframeList[rt.keyframeCursor];
+                rt.curKeyframe = rt.cacheKeyframe;
+              }
+
+              computedPotionsDelta();
+            }
+          }
+
+          /// 重复次数时，切换关键帧
+          /// 在此虚拟一个关键帧：用来存储前一帧的位置信息和当前帧的其他信息。
+          /// 在此做判断，如歌要执行repeatCount时候，在此将preKeyframe切换成cacheKeyframe。
 
           /// 接下来要计算当前时刻的位置
           /// 第一步： 获取当前时的时间 在 总时间 里的百分几
-          double t =
-              (rt.elapsedTime - rt.preKeyframe!.time) /
-              (rt.curKeyframe!.time - rt.preKeyframe!.time);
+          /// repeatTime用来计算重复次数耗费的时间
+          /// processTime是当前帧已运行的时间。除以运行时间的话，就是时间进度t了
+          double repeatTime = 0.0;
+          double processTime = rt.elapsedTime - rt.curKeyframe!.markerTimeStart;
+          if (rt.repeatCount > 0) {
+            rt.curKeyframe;
+            repeatTime = rt.repeatCount * rt.curKeyframe!.time * 2;
+            processTime -= repeatTime;
+          }
 
+          double t = processTime / rt.curKeyframe!.time;
           t = t.clamp(0, 1);
 
           /// 获取t时间时对应的y值
@@ -598,6 +654,14 @@ class RunTimeWorkSpace {
   //最终需要的位置和速度信息
   List<double> result;
   double preRatio;
+
+  /// 重复次数 存在0.5次的计算，所以用double
+  double repeatCount;
+
+  /// 缓存帧 用来重复执行帧时用的。存储的是curKeyframe的贝塞尔曲线信息和执行时间。还有是上一帧的位置信息。
+  /// 这么做的原因是： 当前帧到上一帧的位置是合理的。
+  /// 举个例子：A -> B帧 -> C帧 。A -> B 与 C -> B不同。 但 B->C 和 C->B 理论上不会出现物理问题（比如速度过快，时间不合理等）。
+  Keyframe? cacheKeyframe;
   // 用来计算与上一帧的时间差，因为有可能并非严格等差时间。
   // double preElapsedTime;
   /// 由于发送指令太快，会造成指令积压，导致电机执行时间严重拉长，所以在此做合并帧操作，将四帧数合并成一帧
@@ -617,6 +681,8 @@ class RunTimeWorkSpace {
     this.deltaDeg = const [],
     this.deltaTime = 0,
     this.controlPoints = const [.2, .2, .5, .5],
+    this.repeatCount = 0.0,
+    this.cacheKeyframe,
     this.result = const [],
     this.preRatio = 0.0,
     this.results = const [],
@@ -624,12 +690,12 @@ class RunTimeWorkSpace {
     this.curSize = 0,
   }) {
     keyframeList = curMotion?.keyframes ?? const [];
-    curKeyframe =
-        curMotion?.keyframes[1] ??
-        Keyframe(name: '', timingFunction: '', time: 0, positions: []);
-    preKeyframe =
-        curMotion?.keyframes[1] ??
-        Keyframe(name: '', timingFunction: '', time: 0, positions: []);
+    // curKeyframe =
+    //     curMotion?.keyframes[1] ??
+    //     Keyframe(name: '', timingFunction: '', time: 0, positions: []);
+    // preKeyframe =
+    //     curMotion?.keyframes[1] ??
+    //     Keyframe(name: '', timingFunction: '', time: 0, positions: []);
     len = curMotion?.keyframes.length ?? 0;
 
     deltaDeg = List<double>.filled(6, 0.0);

@@ -87,6 +87,8 @@ location： [18, 0, 253, motorId, 22, 112, 0, 0, 63, 128, 0, 0]  // 后四位是
             time: double,
             joints: [], // 六个关节位置
             bezier: [], // 控制点1和控制点2
+            markerTimeStart: double,
+            markerTimeEnd: double,
         },
         ...
     ]

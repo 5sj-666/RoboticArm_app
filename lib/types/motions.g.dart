@@ -14,6 +14,9 @@ Keyframe _$KeyframeFromJson(Map<String, dynamic> json) => Keyframe(
   time: (json['time'] as num?)?.toDouble() ?? 0.0,
   createTime: json['createTime'] as String?,
   timingFunction: json['timingFunction'] as String?,
+  repeatCount: (json['repeatCount'] as num?)?.toInt() ?? 0,
+  markerTimeStart: (json['markerTimeStart'] as num?)?.toDouble() ?? 0.0,
+  markerTimeEnd: (json['markerTimeEnd'] as num?)?.toDouble() ?? 0.0,
 );
 
 Map<String, dynamic> _$KeyframeToJson(Keyframe instance) => <String, dynamic>{
@@ -22,6 +25,9 @@ Map<String, dynamic> _$KeyframeToJson(Keyframe instance) => <String, dynamic>{
   'time': instance.time,
   'createTime': instance.createTime,
   'timingFunction': instance.timingFunction,
+  'repeatCount': instance.repeatCount,
+  'markerTimeStart': instance.markerTimeStart,
+  'markerTimeEnd': instance.markerTimeEnd,
 };
 
 Motion _$MotionFromJson(Map<String, dynamic> json) => Motion(
