@@ -56,98 +56,115 @@ class _orderKeyframe extends State<OrderKeyframePage> {
     final motionsCubit = BlocProvider.of<MotionsCubit>(context);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          print('保存动作');
-          saveDialog(
-            context: context,
-            keyframeList: keyframeList,
-            motionsCubit: motionsCubit,
-          );
-        },
-        child: Icon(Icons.save),
-      ),
-      appBar: AppBar(title: Text('动作设计')),
-      body: Container(
-        decoration: BoxDecoration(
-          border: Border.all(width: 1, color: Colors.blue.shade200),
-        ),
-        child: ReorderableListView(
-          children: <Widget>[
-            for (int index = 0; index < keyframeList.length; index += 1)
-              Material(
-                key: ValueKey<int>(
-                  int.parse(keyframeList[index].createTime ?? '0'),
-                ),
-                color: Colors.transparent,
-                child: ListTile(
-                  tileColor: index.isOdd ? oddItemColor : evenItemColor,
-                  leading: ReorderableDragStartListener(
-                    index: index,
-                    child: Container(
-                      width: 30,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        border: Border.all(
-                          width: 1,
-                          color: Colors.blue.shade300,
+      appBar: AppBar(title: Text('设计动作')),
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(width: 1, color: Colors.blue.shade200),
+            ),
+            child: ReorderableListView(
+              children: <Widget>[
+                for (int index = 0; index < keyframeList.length; index += 1)
+                  Material(
+                    key: ValueKey<int>(
+                      int.parse(keyframeList[index].createTime ?? '0'),
+                    ),
+                    color: Colors.transparent,
+                    child: ListTile(
+                      tileColor: index.isOdd ? oddItemColor : evenItemColor,
+                      leading: ReorderableDragStartListener(
+                        index: index,
+                        child: Container(
+                          width: 30,
+                          height: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade100,
+                            border: Border.all(
+                              width: 1,
+                              color: Colors.blue.shade300,
+                            ),
+                          ),
+                          child: Icon(Icons.drag_handle),
                         ),
                       ),
-                      child: Icon(Icons.drag_handle),
+                      // title: Text('Item ${_items[index]}'),
+                      title: MotionItemCard(
+                        item: keyframeList[index],
+                        index: index,
+                        showDelete: keyframeList.length > 2,
+                        changeTimingFunc: (str) {
+                          setState(() {
+                            if (str != '') {
+                              keyframeList[index].timingFunction = str;
+
+                              // var keyframe = keyframeList[index];
+                              // print('---keyframe name: ${keyframe.name}');
+                              // // 保存至sharedPreferences
+                              // final keyframeJson = json.encode(keyframe.toJson());
+                              // SharedPrefsStorage.save(
+                              //   key: 'keyframe_${keyframe.name}',
+                              //   jsonValue: keyframeJson,
+                              // );
+                            }
+                          });
+                        },
+                        removeTemporary: (index) {
+                          print('removeTemporary$index');
+                          setState(() {
+                            keyframeList.removeAt(index);
+                          });
+                        },
+                      ),
                     ),
                   ),
-                  // title: Text('Item ${_items[index]}'),
-                  title: MotionItemCard(
-                    item: keyframeList[index],
-                    index: index,
-                    showDelete: keyframeList.length > 2,
-                    changeTimingFunc: (str) {
-                      setState(() {
-                        if (str != '') {
-                          keyframeList[index].timingFunction = str;
-
-                          // var keyframe = keyframeList[index];
-                          // print('---keyframe name: ${keyframe.name}');
-                          // // 保存至sharedPreferences
-                          // final keyframeJson = json.encode(keyframe.toJson());
-                          // SharedPrefsStorage.save(
-                          //   key: 'keyframe_${keyframe.name}',
-                          //   jsonValue: keyframeJson,
-                          // );
-                        }
-                      });
+              ],
+              proxyDecorator:
+                  (Widget child, int index, Animation<double> animation) {
+                    return Material(
+                      elevation: 6,
+                      borderRadius: BorderRadius.circular(6),
+                      child: child,
+                    );
+                  },
+              onReorder: (int oldIndex, int newIndex) {
+                print('oldIndex: $oldIndex, newIndex: $newIndex');
+                setState(() {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final Keyframe item = keyframeList.removeAt(oldIndex);
+                  keyframeList.insert(newIndex, item);
+                  keyframeList[0].time = 0.0; // 第一帧时间必须为0
+                });
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              height: 80,
+              child: Center(
+                child: SizedBox(
+                  width: 0.7 * MediaQuery.of(context).size.width,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      saveDialog(
+                        context: context,
+                        keyframeList: keyframeList,
+                        motionsCubit: motionsCubit,
+                      );
                     },
-                    removeTemporary: (index) {
-                      print('removeTemporary$index');
-                      setState(() {
-                        keyframeList.removeAt(index);
-                      });
-                    },
+                    child: Text("保存"),
                   ),
                 ),
               ),
-          ],
-          proxyDecorator:
-              (Widget child, int index, Animation<double> animation) {
-                return Material(
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(6),
-                  child: child,
-                );
-              },
-          onReorder: (int oldIndex, int newIndex) {
-            print('oldIndex: $oldIndex, newIndex: $newIndex');
-            setState(() {
-              if (oldIndex < newIndex) {
-                newIndex -= 1;
-              }
-              final Keyframe item = keyframeList.removeAt(oldIndex);
-              keyframeList.insert(newIndex, item);
-              keyframeList[0].time = 0.0; // 第一帧时间必须为0
-            });
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -186,7 +203,7 @@ class MotionItemCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              SizedBox(width: 20, child: Text('${index + 1}')),
+              // SizedBox(width: 20, child: Text('${index + 1}')),
               SizedBox(
                 width: 100,
                 child: TextField(
@@ -203,7 +220,7 @@ class MotionItemCard extends StatelessWidget {
                   ),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: '时间/s',
+                    labelText: '运行时间/s',
                   ),
                   onChanged: (value) {
                     // print('输入');
@@ -212,11 +229,28 @@ class MotionItemCard extends StatelessWidget {
                   },
                 ),
               ),
-              Expanded(
-                flex: 1,
-                child: Container(
-                  margin: EdgeInsets.only(left: 10),
-                  child: Text((item?.name ?? '').replaceFirst('keyframe_', '')),
+              //  if (index > 0)
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  enabled: index != 0,
+                  keyboardType: TextInputType.numberWithOptions(
+                    decimal: true,
+                  ), // 弹出数字键盘
+                  inputFormatters: [
+                    // FilteringTextInputFormatter.digitsOnly, // 仅允许数字
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
+                  ],
+                  controller: TextEditingController(
+                    text: item?.repeatCount.toString() ?? '0',
+                  ),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: '重复次数',
+                  ),
+                  onChanged: (value) {
+                    item!.repeatCount = int.tryParse(value) ?? 0;
+                  },
                 ),
               ),
               InkWell(
@@ -250,7 +284,39 @@ class MotionItemCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Text('缓动函数${item?.timingFunction}'),
-              SizedBox(width: 1),
+              // SizedBox(width: 0.1),
+              // if (index > 0)
+              //   SizedBox(
+              //     width: 100,
+              //     height: 40,
+              //     child: TextField(
+              //       enabled: index != 0,
+              //       keyboardType: TextInputType.numberWithOptions(
+              //         decimal: true,
+              //       ), // 弹出数字键盘
+              //       inputFormatters: [
+              //         // FilteringTextInputFormatter.digitsOnly, // 仅允许数字
+              //         FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
+              //       ],
+              //       controller: TextEditingController(
+              //         text: item?.repeatCount.toString() ?? '0',
+              //       ),
+              //       decoration: InputDecoration(
+              //         border: OutlineInputBorder(),
+              //         labelText: '重复次数',
+              //       ),
+              //       onChanged: (value) {
+              //         item!.repeatCount = int.tryParse(value) ?? 0;
+              //       },
+              //     ),
+              //   ),
+              Expanded(
+                flex: 1,
+                child: Container(
+                  margin: EdgeInsets.only(left: 10),
+                  child: Text((item?.name ?? '').replaceFirst('keyframe_', '')),
+                ),
+              ),
               SizedBox(
                 child: showDelete
                     ? FilledButton(
@@ -327,10 +393,20 @@ Future<void> saveDialog({
               for (int i = 0; i < keyframeList.length; i++) {
                 // 第一帧的时间必须为0
                 if (i == 0) {
-                  keyframeList[i].time = 0;
+                  keyframeList[i].markerTimeStart = 0;
+                  keyframeList[i].markerTimeEnd = 0;
                 } else {
                   // 后续时间要加上前一帧的时间，之后就像一个时间尺
-                  keyframeList[i].time += keyframeList[i - 1].time;
+                  // keyframeList[i].time += keyframeList[i - 1].time;
+                  /// 需要再加上 （重复次数的时间 x 2）。
+                  final repeatTime =
+                      keyframeList[i].repeatCount * keyframeList[i].time * 2;
+                  keyframeList[i].markerTimeEnd +=
+                      keyframeList[i - 1].markerTimeEnd +
+                      repeatTime +
+                      keyframeList[i].time;
+                  keyframeList[i].markerTimeStart =
+                      keyframeList[i - 1].markerTimeEnd;
                 }
 
                 _keyframeList.add(keyframeList[i]);
