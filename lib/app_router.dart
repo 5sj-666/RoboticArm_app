@@ -2,7 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:robotic_arm_app/pages/HomeScreen.dart';
 import 'package:robotic_arm_app/pages/motions/design_motion.dart';
 import 'package:robotic_arm_app/pages/waterfall/search.dart';
-
 import 'package:robotic_arm_app/pages/motions/detail.dart';
 
 part 'app_router.gr.dart';
@@ -25,7 +24,7 @@ class AppRouter extends RootStackRouter {
     // ),
     // 使用生成的路由
     AutoRoute(page: HomeRoute.page, initial: true),
-    AutoRoute(page: OrderKeyframeRoute.page),
+    AutoRoute(page: DesignMotionRoute.page),
     AutoRoute(page: SearchRoute.page),
     AutoRoute(page: DetailRoute.page),
   ];

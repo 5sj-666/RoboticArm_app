@@ -116,7 +116,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                         FilledButton(
                           onPressed: () {
                             context.router.push(
-                              NamedRoute('OrderKeyframeRoute'),
+                              NamedRoute('DesignMotionRoute'),
                             );
                           },
                           style: ButtonStyle(

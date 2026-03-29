@@ -13,8 +13,8 @@ import 'package:robotic_arm_app/components/KfCard.dart';
 var logger = Logger();
 
 @RoutePage()
-class OrderKeyframePage extends StatelessWidget {
-  OrderKeyframePage({super.key});
+class DesignMotionPage extends StatelessWidget {
+  const DesignMotionPage({super.key});
 
   /// 进入页面生命周期
 

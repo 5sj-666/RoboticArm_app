@@ -11,6 +11,22 @@
 part of 'app_router.dart';
 
 /// generated route for
+/// [DesignMotionPage]
+class DesignMotionRoute extends PageRouteInfo<void> {
+  const DesignMotionRoute({List<PageRouteInfo>? children})
+    : super(DesignMotionRoute.name, initialChildren: children);
+
+  static const String name = 'DesignMotionRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const DesignMotionPage();
+    },
+  );
+}
+
+/// generated route for
 /// [DetailPage]
 class DetailRoute extends PageRouteInfo<DetailRouteArgs> {
   DetailRoute({required String id, List<PageRouteInfo>? children})
@@ -64,22 +80,6 @@ class HomeRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return HomeScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [OrderKeyframePage]
-class OrderKeyframeRoute extends PageRouteInfo<void> {
-  const OrderKeyframeRoute({List<PageRouteInfo>? children})
-    : super(OrderKeyframeRoute.name, initialChildren: children);
-
-  static const String name = 'OrderKeyframeRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return OrderKeyframePage();
     },
   );
 }
