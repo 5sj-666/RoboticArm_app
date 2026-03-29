@@ -15,6 +15,7 @@ import 'package:robotic_arm_app/types/motions.dart';
 import 'package:robotic_arm_app/components/MotionStatusBtn.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_collapse.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_panel.dart';
+import 'package:robotic_arm_app/cubit/keyframe_cubit.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -135,6 +136,9 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                               context: context,
                               jointsCubit: jointsCubit,
                             );
+                            KeyframeCubit kfCubit =
+                                BlocProvider.of<KeyframeCubit>(context);
+                            kfCubit.init();
                           },
                           style: ButtonStyle(
                             backgroundColor: WidgetStatePropertyAll<Color>(

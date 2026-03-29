@@ -135,7 +135,7 @@ class MotionsCubit extends Cubit<MotionsState> {
     // print('motionscubic初始状态 ');
   }
 
-  void update() {
+  void init() {
     print('motionscubic更新状态 ');
     _initMotions();
   }

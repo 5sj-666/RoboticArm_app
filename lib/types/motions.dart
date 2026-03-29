@@ -17,7 +17,7 @@ class Keyframe {
   List<double> positions;
   double time; // 秒 帧运行耗费的时间
   String? createTime; // 创建时间(时间戳)
-  String? timingFunction = '.1,.1,.9,.9';
+  String? timingFunction = '.33,.33,.66,.66';
   int repeatCount = 0;
   double markerTimeStart = 0.0; // 时间轴上标记的位置（在时间轴上的哪一时刻开始运行），单位为秒
   double markerTimeEnd = 0.0; // 时间轴上标记的位置（在时间轴上的哪一时刻结束运行），单位为秒
@@ -25,7 +25,7 @@ class Keyframe {
   Keyframe({
     this.name,
     required this.positions,
-    this.time = 0.0,
+    this.time = 0,
     this.createTime,
     this.timingFunction,
     this.repeatCount = 0,

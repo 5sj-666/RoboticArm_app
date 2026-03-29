@@ -11,7 +11,7 @@ Keyframe _$KeyframeFromJson(Map<String, dynamic> json) => Keyframe(
   positions: (json['positions'] as List<dynamic>)
       .map((e) => (e as num).toDouble())
       .toList(),
-  time: (json['time'] as num?)?.toDouble() ?? 0.0,
+  time: (json['time'] as num?)?.toDouble() ?? 0,
   createTime: json['createTime'] as String?,
   timingFunction: json['timingFunction'] as String?,
   repeatCount: (json['repeatCount'] as num?)?.toInt() ?? 0,
