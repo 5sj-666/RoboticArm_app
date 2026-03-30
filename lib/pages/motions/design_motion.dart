@@ -77,17 +77,12 @@ class DesignMotionPage extends StatelessWidget {
                               index: index,
                               // showDelete: kfList.length > 2,
                               showDelete: true,
-                              changeTimingFunc: (str) {
-                                kfList[index].timingFunction = str;
-                                kfCubit.update(kfList[index]);
-                              },
-                              changeRepeat: (value) {
-                                kfList[index].repeatCount = value;
-                                kfCubit.update(kfList[index]);
-                              },
-                              changeTime: (value) {
-                                kfList[index].time = value;
-                                kfCubit.update(kfList[index]);
+                              updateKf: (kf, [type]) {
+                                if (type != null && type == "duplicate") {
+                                  kfCubit.duplicateItem(kf);
+                                } else {
+                                  kfCubit.update(kf);
+                                }
                               },
                               softDel: (index) {
                                 kfCubit.softDelete([index]);

@@ -4,34 +4,31 @@ import 'package:robotic_arm_app/types/motions.dart';
 import 'package:robotic_arm_app/components/Bezier/Dialog.dart';
 import 'package:robotic_arm_app/components/Bezier/Svg.dart';
 
-class KfCard extends StatelessWidget {
-  final Keyframe? item;
-  final int index;
-  final ValueChanged<String>? changeTimingFunc;
-  final ValueChanged<double>? changeTime;
-  final ValueChanged<int>? changeRepeat;
+typedef ValueChangedWithTwoArgs<T, U> = void Function(T value1, U value2);
 
+class KfCard extends StatelessWidget {
+  final Keyframe item;
+  final int index;
+  final void Function(Keyframe, [String?]) updateKf;
   final ValueChanged<int>? softDel;
   final bool showDelete;
 
   KfCard({
     super.key,
-    this.item,
+    required this.item,
     required this.index,
-    this.changeTimingFunc,
+    required this.updateKf,
     this.softDel,
     this.showDelete = false,
-    this.changeTime,
-    this.changeRepeat,
   });
 
   @override
   Widget build(BuildContext context) {
     // print('design_motion build: ${item?.timingFunction}');
     // KeyframeCubit kfCubit = BlocProvider.of<KeyframeCubit>(context);
-    final timeController = TextEditingController(text: item?.time.toString());
+    final timeController = TextEditingController(text: item.time.toString());
     final countController = TextEditingController(
-      text: item?.repeatCount.toString(),
+      text: item.repeatCount.toString(),
     );
     return Container(
       // width: 100,
@@ -65,30 +62,15 @@ class KfCard extends StatelessWidget {
                     labelText: '运行时间/s',
                   ),
                   onChanged: (value) {
-                    item!.time = double.tryParse(value) ?? 0.0;
-                    // if (changeTime != null) {
-                    //   changeTime!(item!.time);
-                    // }
-                  },
-                  onSubmitted: (value) {
-                    FocusScope.of(context).unfocus();
-                    item!.time = double.tryParse(value) ?? 0.0;
-                    if (changeTime != null) {
-                      changeTime!(item!.time);
-                    }
-                  }, // 失去焦点，收起键盘
-                  onEditingComplete: () {
-                    FocusScope.of(context).unfocus(); // 失去焦点，收起键盘
-                    if (changeTime != null) {
-                      changeTime!(item!.time);
-                    }
+                    item.time = double.tryParse(value) ?? 0.0;
                   },
                   onTapOutside: (event) {
-                    // 失去焦点时，更新文本框内容为最新的 repeatCount 值
-                    countController.text = item!.repeatCount.toString();
-                    // if (changeRepeat != null) {
-                    //   changeRepeat!(item!.repeatCount);
-                    // }
+                    FocusScope.of(context).unfocus();
+                    item.time = double.tryParse(timeController.text) ?? 0.0;
+                    updateKf(item, "changeTime");
+                  },
+                  onTap: () {
+                    timeController.text = "";
                   },
                 ),
               ),
@@ -108,27 +90,17 @@ class KfCard extends StatelessWidget {
                     labelText: '重复次数',
                   ),
                   onChanged: (value) {
-                    item!.repeatCount = int.tryParse(value) ?? 0;
+                    item.repeatCount = int.tryParse(value) ?? 0;
                   },
-                  onSubmitted: (value) {
-                    FocusScope.of(context).unfocus();
-                    item!.repeatCount = int.tryParse(value) ?? 0;
-                    if (changeRepeat != null) {
-                      changeRepeat!(item!.repeatCount);
-                    }
-                  }, // 失去焦点，收起键盘
                   onEditingComplete: () {
-                    FocusScope.of(context).unfocus(); // 失去焦点，收起键盘
-                    if (changeRepeat != null) {
-                      changeRepeat!(item!.repeatCount);
-                    }
+                    FocusScope.of(context).unfocus();
+                    updateKf(item, "changeRepeat");
                   },
                   onTapOutside: (event) {
-                    // 失去焦点时，更新文本框内容为最新的 repeatCount 值
-                    countController.text = item!.repeatCount.toString();
-                    // if (changeRepeat != null) {
-                    //   changeRepeat!(item!.repeatCount);
-                    // }
+                    countController.text = item.repeatCount.toString();
+                  },
+                  onTap: () {
+                    countController.text = "";
                   },
                 ),
               ),
@@ -137,21 +109,21 @@ class KfCard extends StatelessWidget {
                   final dynamic customTimingFunc = await showDialog(
                     context: context,
                     builder: (context) => SetBezier(
-                      initTimingFunc: item?.timingFunction ?? 'linear',
+                      initTimingFunc: item.timingFunction ?? 'linear',
                     ),
                   );
                   if (customTimingFunc != null) {
-                    item?.timingFunction = customTimingFunc;
+                    item.timingFunction = customTimingFunc;
 
                     try {
-                      changeTimingFunc!(customTimingFunc);
+                      updateKf(item, "changeTimingFunc");
                     } catch (error) {
                       print(error);
                     }
                   }
                 },
                 child: SvgCubicBezier(
-                  timingFunc: item?.timingFunction ?? 'ease-in',
+                  timingFunc: item.timingFunction ?? 'ease-in',
                   bg: Colors.white70,
                 ),
               ),
@@ -165,9 +137,37 @@ class KfCard extends StatelessWidget {
                 child: Container(
                   margin: EdgeInsets.only(left: 10),
                   child: Text(
-                    "名称: ${(item?.name ?? '').replaceFirst('keyframe_', '')}",
+                    "名称: ${(item.name ?? '').replaceFirst('keyframe_', '')}",
                   ),
                 ),
+              ),
+              FilledButton(
+                onPressed: () {
+                  motorAngleDialog(
+                    context: context,
+                    motorAngles: item.positions,
+                    onConfirm: (list) {
+                      item.positions = list;
+                      updateKf(item, "changePositions");
+                    },
+                  );
+                },
+                style: ButtonStyle(
+                  padding: WidgetStateProperty.all(EdgeInsetsGeometry.zero),
+                  minimumSize: WidgetStateProperty.all<Size>(Size(40, 25)),
+                ),
+                child: Icon(Icons.edit),
+              ),
+
+              FilledButton(
+                onPressed: () {
+                  updateKf(item, "duplicate");
+                },
+                style: ButtonStyle(
+                  padding: WidgetStateProperty.all(EdgeInsetsGeometry.zero),
+                  minimumSize: WidgetStateProperty.all<Size>(Size(40, 25)),
+                ),
+                child: Icon(Icons.copy),
               ),
               SizedBox(
                 child: showDelete
@@ -184,6 +184,9 @@ class KfCard extends StatelessWidget {
                           minimumSize: WidgetStateProperty.all<Size>(
                             Size(40, 25),
                           ),
+                          backgroundColor: WidgetStateProperty.all(
+                            Colors.red.shade400,
+                          ),
                         ),
                         child: Icon(Icons.delete),
                       )
@@ -195,4 +198,78 @@ class KfCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> motorAngleDialog({
+  required BuildContext context,
+  required List<double> motorAngles, // 当前电机角度列表
+  required ValueChanged<List<double>> onConfirm, // 确定按钮回调
+}) async {
+  // 创建控制器列表，每个输入框对应一个控制器
+  final controllers = List.generate(
+    motorAngles.length,
+    (index) => TextEditingController(text: motorAngles[index].toString()),
+  );
+
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus(); // 点击空白处收起键盘
+        },
+        child: AlertDialog(
+          title: Text('修改电机角度', style: TextStyle(fontSize: 18)),
+          content: SingleChildScrollView(
+            child: Column(
+              children: List.generate(
+                motorAngles.length,
+                (index) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextField(
+                    controller: controllers[index],
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*$')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: '电机 ${index + 1} 角度',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 关闭弹框
+              },
+              child: Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // 获取用户输入的角度值
+                final updatedAngles = controllers
+                    .map(
+                      (controller) => double.tryParse(controller.text) ?? 0.0,
+                    )
+                    .toList();
+
+                // 调用回调函数
+                onConfirm(updatedAngles);
+
+                Navigator.of(context).pop(); // 关闭弹框
+              },
+              child: Text('确定'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }

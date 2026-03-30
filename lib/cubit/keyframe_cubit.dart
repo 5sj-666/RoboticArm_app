@@ -74,23 +74,36 @@ class KeyframeCubit extends Cubit<KeyframeState> {
   }
 
   /// 移除制定索引列表的关键帧，然后将其们保存到_oldKeyframe_开头的key中，并删除原来的Keyframe_开头的key
-  void softDelete(List<int> indices) {
+  void softDelete(List<int> indices) async {
     List<Keyframe> updatedKfList = List.from(state.kfList);
     List<Keyframe> removedKeyframes = [];
     indices.sort((a, b) => b.compareTo(a)); // 从大到小排序，避免删除时索引错乱
     for (int index in indices) {
       if (index >= 0 && index < updatedKfList.length) {
         Keyframe item = updatedKfList[index];
-        removedKeyframes.add(item);
         updatedKfList.removeAt(index);
 
         /// 在sharedpreference中删除原来的keyframe_开头的key，
-        /// 并以_oldKeyframe_开头的key保存移除的关键帧
-        SharedPrefsStorage.deleteData('keyframe_${item.name}');
-        SharedPrefsStorage.save(
-          key: 'oldKeyframe_${item.name}',
-          jsonValue: json.encode(item.toJson()),
+
+        /// 如果SharedPrefsStorage中存在keyframe_ + item.name，则删除它并将其保存到oldKeyframe_ + item.name中
+        /// 存在一种情况： 复制的帧，在SharedPrefsStorage中不存在
+        Map<String, dynamic>? keyframeData = await SharedPrefsStorage.readJson(
+          key: '${item.name}',
         );
+        if (keyframeData != null && keyframeData.isNotEmpty) {
+          // print(keyframeData);
+          SharedPrefsStorage.deleteData('keyframe_${item.name}');
+
+          removedKeyframes.add(item);
+
+          /// 并以_oldKeyframe_开头的key保存移除的关键帧
+          SharedPrefsStorage.save(
+            key: 'oldKeyframe_${item.name}',
+            jsonValue: json.encode(item.toJson()),
+          );
+        } else {
+          print('未找到 key 为 ${item.name} 的数据');
+        }
       }
     }
 
@@ -177,5 +190,25 @@ class KeyframeCubit extends Cubit<KeyframeState> {
 
   void clearSelected() {
     emit(state.copyWith(selectedIdxs: {}));
+  }
+
+  void duplicateItem(Keyframe kf) {
+    String baseName = kf.name ?? 'copy';
+    int suffix = 1;
+    while (state.kfList.any((item) => item.name == '${baseName}_$suffix')) {
+      suffix++;
+    }
+
+    Keyframe newItem = Keyframe(
+      name: '${baseName}_$suffix',
+      time: kf.time,
+      repeatCount: kf.repeatCount,
+      timingFunction: kf.timingFunction,
+      positions: List.from(kf.positions),
+      createTime: DateTime.now().millisecondsSinceEpoch.toString(),
+    );
+
+    // 更新关键帧列表并发出新状态
+    emit(state.copyWith(kfList: List.from(state.kfList + [newItem])));
   }
 }

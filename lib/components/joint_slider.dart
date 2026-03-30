@@ -44,7 +44,7 @@ class JointSlider extends StatelessWidget {
             ),
           ),
           child: Text(
-            '$title: ${value.toStringAsFixed(2)}°',
+            '$title: ${value.toStringAsFixed(3)}°',
             textAlign: TextAlign.left,
             style: TextStyle(
               fontSize: 12,
@@ -56,6 +56,7 @@ class JointSlider extends StatelessWidget {
         SizedBox(
           width: 160,
           child: Slider(
+            // divisions:
             label: title,
             min: min,
             max: max,
@@ -66,12 +67,17 @@ class JointSlider extends StatelessWidget {
             onChanged: disable
                 ? null
                 : (double newVal) {
+                    newVal =
+                        double.tryParse(newVal.toStringAsFixed(3)) ?? newVal;
                     onValueChanged(newVal, index);
                   },
             onChangeEnd: disable
                 ? null
                 : (double newVal) {
                     if (onChangeEnd != null) {
+                      // 保留两位小数
+                      newVal =
+                          double.tryParse(newVal.toStringAsFixed(3)) ?? newVal;
                       onChangeEnd!(newVal, index);
                     }
                   },

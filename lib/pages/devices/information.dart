@@ -136,9 +136,6 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                               context: context,
                               jointsCubit: jointsCubit,
                             );
-                            KeyframeCubit kfCubit =
-                                BlocProvider.of<KeyframeCubit>(context);
-                            kfCubit.init();
                           },
                           style: ButtonStyle(
                             backgroundColor: WidgetStatePropertyAll<Color>(
@@ -299,6 +296,9 @@ Future<void> saveDialog({
               // 显示 SnackBar（需通过 ScaffoldMessenger）
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              // ignore: use_build_context_synchronously
+              KeyframeCubit kfCubit = BlocProvider.of<KeyframeCubit>(context);
+              kfCubit.init();
 
               if (context.mounted) {
                 Navigator.of(context).pop();
