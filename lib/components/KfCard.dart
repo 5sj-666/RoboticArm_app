@@ -44,7 +44,7 @@ class KfCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              SizedBox(width: 20, child: Text('${index + 1}')),
+              // SizedBox(width: 20, child: Text('${index + 1}')),
               SizedBox(
                 width: 100,
                 child: TextField(

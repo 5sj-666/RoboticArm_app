@@ -115,6 +115,9 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                       children: [
                         FilledButton(
                           onPressed: () {
+                            KeyframeCubit kfCubit =
+                                BlocProvider.of<KeyframeCubit>(context);
+                            kfCubit.switchOptType(OptType.add, null);
                             context.router.push(
                               NamedRoute('DesignMotionRoute'),
                             );

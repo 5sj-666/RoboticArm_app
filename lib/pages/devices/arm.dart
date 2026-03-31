@@ -628,6 +628,7 @@ class FlutterGameState extends State<ArmPage> {
         math.pi / 180 * 270,
         math.pi / 180 * 90,
       );
+      gltf.scene.translateY(0.005);
     }
   }
 }

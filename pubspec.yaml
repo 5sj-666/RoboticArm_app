@@ -67,6 +67,8 @@ flutter:
     - assets/top_arm.glb
     - assets/cybergearmotor.stp.glb
     - assets/wallfall1.jpg
+    - assets/Gemini_Generated_cover.png
+    - assets/Gemini_Generated_banner.png
     - assets/zero.glb
     - assets/one.glb
     - assets/two.glb

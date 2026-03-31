@@ -152,7 +152,7 @@ class MotionCard extends StatelessWidget {
                 width: cardWidth,
                 height: screenWidth / 2 + 10,
                 fit: BoxFit.cover,
-                image: AssetImage('assets/wallfall1.jpg'),
+                image: AssetImage('assets/Gemini_Generated_banner.png'),
               ),
               Container(
                 padding: EdgeInsetsGeometry.all(6),

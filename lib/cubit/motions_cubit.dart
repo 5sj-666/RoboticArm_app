@@ -129,6 +129,13 @@ class MotionsCubit extends Cubit<MotionsState> {
       }
     });
 
+    /// 根据motion的createTime排序，将createTime时间戳字符串改为int类型进行比较
+    list.sort(
+      (a, b) => -int.parse(
+        a.createTime ?? "0",
+      ).compareTo(int.parse(b.createTime ?? "0")),
+    );
+
     // emit(MotionsState(motions: list));
     emit(state.copyWith(motions: list));
 

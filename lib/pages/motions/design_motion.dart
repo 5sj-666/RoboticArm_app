@@ -27,7 +27,9 @@ class DesignMotionPage extends StatelessWidget {
 
     return BlocBuilder<KeyframeCubit, KeyframeState>(
       builder: (builderContext, kfState) {
-        List<Keyframe> kfList = kfState.kfList;
+        List<Keyframe> kfList = kfState.optType == OptType.add
+            ? kfState.kfList
+            : kfState.editingKfList;
 
         return GestureDetector(
           onTap: () {
@@ -38,14 +40,18 @@ class DesignMotionPage extends StatelessWidget {
             FocusScope.of(context).unfocus();
           },
           child: Scaffold(
-            appBar: AppBar(title: Text('设计动作')),
+            appBar: AppBar(
+              title: Text('${kfState.optType == OptType.add ? "设计" : "编辑"}动作'),
+            ),
             body: Stack(
               children: [
                 Container(
+                  // padding: EdgeInsets.only(bottom: 80),
                   decoration: BoxDecoration(
                     border: Border.all(width: 1, color: Colors.blue.shade200),
                   ),
                   child: ReorderableListView(
+                    padding: EdgeInsets.only(bottom: 80),
                     children: <Widget>[
                       for (int index = 0; index < kfList.length; index += 1)
                         Material(
@@ -117,45 +123,93 @@ class DesignMotionPage extends StatelessWidget {
                       child: SizedBox(
                         width: 0.7 * MediaQuery.of(context).size.width,
                         height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            saveDialog(
-                              context: context,
-                              keyframeList: kfList,
-                              motionsCubit: motionsCubit,
-                              kfCubit: kfCubit,
-                            );
-                          },
-                          child: Text("保存"),
+                        child: kfCubit.state.optType == OptType.add
+                            ? ElevatedButton(
+                                onPressed: () {
+                                  saveDialog(
+                                    context: context,
+                                    keyframeList: kfList,
+                                    motionsCubit: motionsCubit,
+                                    kfCubit: kfCubit,
+                                  );
+                                },
+                                child: Text("新增动作"),
+                              )
+                            : ElevatedButton(
+                                style: ButtonStyle(
+                                  backgroundColor: WidgetStateProperty.all(
+                                    Colors.lightGreen.shade400,
+                                  ),
+                                  foregroundColor: WidgetStateProperty.all(
+                                    Colors.white,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  // motion;
+                                  saveEdit(context: context, kfCubit: kfCubit);
+
+                                  /// 弹框提示： 确定修改？
+                                },
+                                child: Text("保存编辑"),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (kfState.optType == OptType.add)
+                  DraggableFloatWidget(
+                    config: DraggableFloatWidgetBaseConfig(
+                      isFullScreen: false,
+                      initPositionYInTop: false,
+                      initPositionYMarginBorder: 50,
+                    ),
+                    onTap: () {},
+                    child: IconButton.filledTonal(
+                      style: IconButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
+                        iconSize: 28,
+                      ),
+                      onPressed: () {
+                        keyframeHistoryDialog(
+                          context: context,
+                          keyframeList: kfList,
+                          motionsCubit: motionsCubit,
+                        );
+                      },
+                      icon: Icon(Icons.history, color: Colors.grey.shade600),
+                    ),
+                  ),
+                if (kfState.optType == OptType.edit)
+                  DraggableFloatWidget(
+                    config: DraggableFloatWidgetBaseConfig(
+                      isFullScreen: false,
+                      initPositionYInTop: false,
+                      initPositionYMarginBorder: 50,
+                    ),
+                    onTap: () {},
+                    child: IconButton.filledTonal(
+                      style: IconButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        iconSize: 28,
+                      ),
+                      onPressed: () {
+                        showKfAll(context: context);
+                        // keyframeHistoryDialog(
+                        //   context: context,
+                        //   keyframeList: kfState.kfList + kfState.oldKfList,
+                        //   motionsCubit: motionsCubit,
+                        // );
+                      },
+                      icon: Icon(
+                        Icons.access_time,
+                        color: Colors.lightBlue.shade200,
                       ),
                     ),
                   ),
-                ),
-                DraggableFloatWidget(
-                  config: DraggableFloatWidgetBaseConfig(
-                    isFullScreen: false,
-                    initPositionYInTop: false,
-                    initPositionYMarginBorder: 50,
-                  ),
-                  onTap: () {},
-                  child: IconButton.filledTonal(
-                    style: IconButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      iconSize: 28,
-                    ),
-                    onPressed: () {
-                      keyframeHistoryDialog(
-                        context: context,
-                        keyframeList: kfList,
-                        motionsCubit: motionsCubit,
-                      );
-                    },
-                    icon: Icon(Icons.delete, color: Colors.grey.shade600),
-                  ),
-                ),
               ],
             ),
           ),
@@ -222,7 +276,7 @@ Future<void> saveDialog({
                   /// 需要再加上 （重复次数的时间 x 2）。
                   final repeatTime =
                       keyframeList[i].repeatCount * keyframeList[i].time * 2;
-                  keyframeList[i].markerTimeEnd +=
+                  keyframeList[i].markerTimeEnd =
                       keyframeList[i - 1].markerTimeEnd +
                       repeatTime +
                       keyframeList[i].time;
@@ -255,6 +309,11 @@ Future<void> saveDialog({
                   duration: const Duration(seconds: 2), // 显示时长（默认 4 秒）
                   backgroundColor: Colors.green, // 背景色
                 );
+
+                /// 保存成功，对已使用的关键帧软删除
+                for (var kf in keyframeList) {
+                  kfCubit.softDelete([keyframeList.indexOf(kf)]);
+                }
               } catch (err) {
                 logger.w('动作设计错误$err');
               }
@@ -269,6 +328,100 @@ Future<void> saveDialog({
             child: Text('确定'),
           ),
         ],
+      );
+    },
+  );
+}
+
+Future<void> saveEdit({
+  required BuildContext context,
+  required KeyframeCubit kfCubit,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('确认修改'),
+        content: Text('确定要保存对动作的修改吗？'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              /// 构造motion数据
+              /// 在motionsCubit中更新当前motion数据
+              /// 在sharedpreference中更新motion数据
+              /// 返回上一级页面
+              kfCubit.saveEdit();
+              Navigator.of(context).pop();
+              context.router.pop();
+            },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all(Colors.green.shade400),
+            ),
+            child: Text("确定"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> showKfAll({required BuildContext context}) async {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      KeyframeCubit kfCubit = BlocProvider.of<KeyframeCubit>(context);
+      List<Keyframe> kfList = kfCubit.state.kfList + kfCubit.state.oldKfList;
+
+      return BlocBuilder<KeyframeCubit, KeyframeState>(
+        builder: (builderContext, kfState) {
+          return AlertDialog(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('可使用的关键帧', style: TextStyle(fontSize: 18)),
+                IconButton(
+                  icon: Icon(Icons.close),
+                  onPressed: () {
+                    Navigator.of(context).pop(); // 关闭弹框
+                  },
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 0.8 * MediaQuery.of(context).size.width,
+              height: 200,
+              child: ListView.builder(
+                itemCount: kfList.length,
+                itemBuilder: (context, index) {
+                  // final oldKfList = kfState.oldKfList[index];
+                  return CheckboxListTile(
+                    title: Text("${kfList[index].name}"),
+                    value: kfState.selectedIdxs.contains(index),
+                    onChanged: (bool? value) {
+                      kfCubit.checkSelected(index, value ?? false);
+                    },
+                  );
+                },
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () async {
+                  // kfCubit.active(List.from(kfState.selectedIdxs));
+                  kfCubit.add2EditingKf();
+                  Navigator.of(context).pop();
+                },
+                child: Text('使用 (${kfState.selectedIdxs.length})'),
+              ),
+            ],
+          );
+        },
       );
     },
   );
