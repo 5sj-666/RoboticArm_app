@@ -62,15 +62,17 @@ class KfCard extends StatelessWidget {
                     labelText: '运行时间/s',
                   ),
                   onChanged: (value) {
-                    item.time = double.tryParse(value) ?? 0.0;
-                  },
-                  onTapOutside: (event) {
-                    FocusScope.of(context).unfocus();
-                    item.time = double.tryParse(timeController.text) ?? 0.0;
-                    updateKf(item, "changeTime");
+                    item.time = double.tryParse(value) ?? 0.5;
                   },
                   onTap: () {
-                    timeController.text = "";
+                    // 延迟设置全选
+                    Future.delayed(Duration(milliseconds: 10), () {
+                      // 全选输入框内容
+                      timeController.selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: timeController.text.length,
+                      );
+                    });
                   },
                 ),
               ),
@@ -96,11 +98,15 @@ class KfCard extends StatelessWidget {
                     FocusScope.of(context).unfocus();
                     updateKf(item, "changeRepeat");
                   },
-                  onTapOutside: (event) {
-                    countController.text = item.repeatCount.toString();
-                  },
                   onTap: () {
-                    countController.text = "";
+                    // 全选输入框内容
+                    // 延迟设置全选
+                    Future.delayed(Duration(milliseconds: 10), () {
+                      countController.selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: countController.text.length,
+                      );
+                    });
                   },
                 ),
               ),
@@ -214,62 +220,118 @@ Future<void> motorAngleDialog({
   return showDialog<void>(
     context: context,
     builder: (BuildContext context) {
-      return GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus(); // 点击空白处收起键盘
-        },
-        child: AlertDialog(
-          title: Text('修改电机角度', style: TextStyle(fontSize: 18)),
-          content: SingleChildScrollView(
-            child: Column(
-              children: List.generate(
-                motorAngles.length,
-                (index) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: TextField(
-                    controller: controllers[index],
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*$')),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: '电机 ${index + 1} 角度',
-                      border: OutlineInputBorder(),
-                    ),
+      return AlertDialog(
+        title: Text('修改电机角度', style: TextStyle(fontSize: 18)),
+        content: SingleChildScrollView(
+          child: Column(
+            children: List.generate(
+              motorAngles.length,
+              (index) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextField(
+                  controller: controllers[index],
+                  keyboardType: TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
                   ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^-?(\d+)?(\.\d+)?$'),
+                    ),
+                    RangeInputFormatter(min: -145.0, max: 145.0),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: '电机 ${index + 1} 角度',
+                    border: OutlineInputBorder(),
+                  ),
+                  onTap: () {
+                    // 全选输入框内容
+                    // 延迟设置全选
+                    Future.delayed(Duration(milliseconds: 10), () {
+                      controllers[index].selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: controllers[index].text.length,
+                      );
+                    });
+                  },
                 ),
               ),
             ),
           ),
-
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // 关闭弹框
-              },
-              child: Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // 获取用户输入的角度值
-                final updatedAngles = controllers
-                    .map(
-                      (controller) => double.tryParse(controller.text) ?? 0.0,
-                    )
-                    .toList();
-
-                // 调用回调函数
-                onConfirm(updatedAngles);
-
-                Navigator.of(context).pop(); // 关闭弹框
-              },
-              child: Text('确定'),
-            ),
-          ],
         ),
+
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // 关闭弹框
+            },
+            child: Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // 获取用户输入的角度值
+              final updatedAngles = controllers
+                  .map((controller) => double.tryParse(controller.text) ?? 0.0)
+                  .toList();
+
+              // 调用回调函数
+              onConfirm(updatedAngles);
+
+              Navigator.of(context).pop(); // 关闭弹框
+            },
+            child: Text('确定'),
+          ),
+        ],
       );
     },
   );
+}
+
+class RangeInputFormatter extends TextInputFormatter {
+  final double min;
+  final double max;
+
+  RangeInputFormatter({required this.min, required this.max});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // 如果输入为空，直接返回
+    if (newValue.text.isEmpty ||
+        newValue.text == '-' ||
+        newValue.text == '.' ||
+        newValue.text == '-.' ||
+        newValue.text == '') {
+      return newValue;
+    }
+
+    // 尝试解析输入的值
+    final double? value = double.tryParse(newValue.text);
+
+    // // 如果解析失败，直接赋值0.0
+    if (value == null) {
+      newValue = TextEditingValue(
+        text: "0.0",
+        selection: TextSelection.collapsed(offset: "0.0".length),
+      );
+      return newValue;
+    }
+
+    // 如果值超出范围，阻止输入
+    if (value < -145.0 || value > 145.0) {
+      // return value.clamp(-145.0, 145.0).toString();
+      double limitedValue = value.clamp(-145.0, 145.0);
+      newValue = TextEditingValue(
+        text: limitedValue.toString(),
+        selection: TextSelection.collapsed(
+          offset: limitedValue.toString().length,
+        ),
+      );
+    }
+
+    // 否则允许输入
+    return newValue;
+  }
 }

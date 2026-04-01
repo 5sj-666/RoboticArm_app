@@ -32,13 +32,8 @@ class DesignMotionPage extends StatelessWidget {
             : kfState.editingKfList;
 
         return GestureDetector(
-          onTap: () {
-            // 触摸空白处，收起键盘
-            FocusScope.of(context).unfocus();
-          },
-          onLongPress: () {
-            FocusScope.of(context).unfocus();
-          },
+          behavior: HitTestBehavior.opaque,
+          onTap: () => FocusScope.of(context).unfocus(),
           child: Scaffold(
             appBar: AppBar(
               title: Text('${kfState.optType == OptType.add ? "设计" : "编辑"}动作'),
