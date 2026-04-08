@@ -70,29 +70,41 @@ class _ChatWidgetState extends State<ChatWidget> {
         // model: 'gemma-3-12b',
         apiKey: widget.apiKey,
         systemInstruction: Content.text('''
-          你是一个AI智能助手,在目前这个场景中,
-          如果用户需要你生成机械臂动作(六轴机械臂,类似bba的GoFa™ CRB 15000),
-          如果六个关节都处于0度位置时(即初始化位),机械臂是垂直向上的,
-          你可以按照一下格式进行设计(注意输出给用户时是一个json数据):
+          # 角色：机械臂运动逻辑专家
+
+          ## 核心任务
+          将用户的交互意图转化为高精度的机械臂运动控制 JSON 数据。
+
+          ## 物理与安全约束（核心准则）
+          1. **角度硬限位**：所有关节（J1-J6）的有效运动范围严格限制在 [-145.0, 145.0] 度之间。绝对禁止生成超出此范围的数值。
+          2. **坐标单位**：必须使用 角度（Degrees）。
+          3. **关节极性方向**：
+            - J1, J4, J6：数值增加 (+) -> 向右旋转；减少 (-) -> 向左旋转。
+            - J2, J3, J5：数值增加 (+) -> 往前趴/往下低头；减少 (-) -> 往后仰/往回缩。
+          4. **初始姿态**：keyframes[0] 为动作起势，不需要保持全零位。
+
+          ## 动画逻辑
+          - **repeatCount**：若 keyframes[i] 的 repeatCount > 0，则在关键帧 i-1 和 i 之间往复执行该次数。
+          - **平滑度**：默认 timingFunction 使用 "0.42, 0, 0.58, 1"。
+
+          ## JSON 输出规范
+          仅返回标准 JSON 代码块。
           {
-            id: String, // 动作唯一标识,当前时间的时间戳
-            name: String, // 动作名称
-            author: String, // 作者, 是ai生成的就填入gemini
-            description: String, // 动作描述
-            keyframes: [ // 关键帧列表,
-                {
-                    //注意: 时间要加上前一帧的时间,且第一帧的time必须是0.0,因为他是动作初始化的姿态。
-                    //举个例子： 第一帧的time必须是0.0秒; 第二帧运行时间是1.3秒, 那么第二帧的time是(1.3 + 0.0)秒; 第三帧运行时间是2.2秒,那么它的time是(2.2 + 1.3)秒, 以此类推
-                    time: double, 
-                    // 六个关节位置, 所有关节的位置单位是度, 范围是-145度至145度(第二个关节的位置是-100度至100度), 例子[-30, -45,60,20,10,0]; 格外注意机械臂关机的可活动范围,不要生成的角度很小
-                    // 第三个和第五个关节在现实安装中是反着装的,所以你生成动作的时候，需要将这个两个关节的角度取反, 也就是说如果你想让第三个关节转30度,你需要生成-30度; 如果你想让第五个关节转20度,你需要生成-20度。
-                    positions: [], 
-                    timingFunction: String, // 三次贝塞尔曲线: '控制点1.x, 控制点2.x, 控制点1.y, 控制点2.y' 示例: '.2,.3,.6,.9'
-                },
-                ...
+            "id": "String (时间戳)",
+            "name": "String",
+            "author": "gemini",
+            "description": "String",
+            "keyframes": [
+              {
+                "time": double, 
+                "positions": [J1, J2, J3, J4, J5, J6], 
+                "timingFunction": "String", 
+                "repeatCount": int, 
+                "markerTimeStart": 0.0, 
+                "markerTimeEnd": 0.0
+              }
             ]
           }
-          请确保输出的json数据格式正确且完整,并且时间和位置数据合理。
           '''),
       );
       // 然后在回复中解释他的动作设计思路,动作适合什么场景使用。
@@ -106,6 +118,21 @@ class _ChatWidgetState extends State<ChatWidget> {
     SharedPrefsStorage.findByKeyPrefix("AI_").then((value) {
       print(r'$value');
       String? savedResponse = value['AI_response'];
+      // const String savedResponse =
+      //     '```json{"id":"1712629308000","name":"Horizontal_Circle_Trace_Degrees","author":"gemini","description":"末端绕圆心(0.25,0.25,0.25)的水平圆轨迹，安全运行半径为0.05m。注意：positions 中的关节数据已转换为角度(Degrees)，适配前端本地计算。","keyframes":[{"time":0,"positions":[39.76,54.55,-43.95,0,79.41,0],"timingFunction":"0.25, 0.1, 0.25, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":2,"positions":[50.19,54.55,-43.95,0,79.41,0],"timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":4,"positions":[51.34,73.68,-71.33,0,87.66,0],"timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":6,"positions":[38.68,73.68,-71.33,0,87.66,0],"timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":8,"positions":[39.76,54.55,-43.95,0,79.41,0],"timingFunction":"0.25, 0.1, 0.25, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0}]}```';
+      // const String savedResponse =
+      //     '```json{"id":"1712632947000","name":"Robot_Wave_Test","author":"gemini","description":"挥手动作测试：J2/J3抬起手臂，J4负责左右旋转挥动。验证 J4 增加向右、减少向左的逻辑。","keyframes":[{"time":0,"positions":[0,0,0,0,0,0],"timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":1.2,"positions":[0,45,80,0,-35,0],"description":"抬起手臂，手腕稍稍后仰准备挥手","timingFunction":"0.25, 0.1, 0.25, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":2,"positions":[0,45,80,-30,-35,0],"description":"向左挥动 (J4 减少)","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":2.8,"positions":[0,45,80,30,-35,0],"description":"向右挥动 (J4 增加)","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":3.6,"positions":[0,45,80,-30,-35,0],"description":"再次向左挥动","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":4.8,"positions":[0,0,0,0,0,0],"description":"动作结束，回到初始位","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0}]}```';
+
+      // const String savedResponse =
+      //     '```json{"id":"1712635589000","name":"Figure_Eight_Demo","author":"gemini","description":"垂直面 8 字轨迹测试。验证 J1(左右)与 J2/J3(上下)的联动协调性。采用 9 个关键帧实现平滑闭环。","keyframes":[{"time":0,"positions":[0,0,0,0,0,0],"timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":1.5,"positions":[0,35,70,0,-105,0],"description":"起始点：8 字中心","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":2.5,"positions":[-15,25,50,0,-75,0],"description":"左上环 (J1减少, J2/J3减少)","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":3.5,"positions":[-15,45,90,0,-135,0],"description":"左下环 (J1维持, J2/J3增加)","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":4.5,"positions":[0,35,70,0,-105,0],"description":"回到中心交汇点","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":5.5,"positions":[15,25,50,0,-75,0],"description":"右上环 (J1增加, J2/J3减少)","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":6.5,"positions":[15,45,90,0,-135,0],"description":"右下环 (J1维持, J2/J3增加)","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":7.5,"positions":[0,35,70,0,-105,0],"description":"回到中心完成 8 字","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":9,"positions":[0,0,0,0,0,0],"description":"归位","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0}]}```';
+      // 画8字测试，笔尖正对屏幕
+      // const String savedResponse =
+      //     '```json{"id":"1712637100000","name":"Figure_Eight_Forward_Facing","author":"gemini","description":"修正版 8 字：通过调整 J5，使笔尖始终指向正前方（水平），适合在垂直平面演示。","keyframes":[{"time":0,"positions":[0,0,0,0,0,0],"timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":1.5,"positions":[0,35,70,0,-15,0],"description":"J2(35)+J3(70)+J5(-15) = 90, 笔尖水平指向前方","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":2.5,"positions":[-15,25,50,0,15,0],"description":"左上环，J5 自动补偿维持水平","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":4.5,"positions":[0,35,70,0,-15,0],"description":"中心交汇点","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":5.5,"positions":[15,25,50,0,15,0],"description":"右上环","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":7.5,"positions":[0,35,70,0,-15,0],"description":"完成 8 字","timingFunction":"0.0, 0.0, 1.0, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":9,"positions":[0,0,0,0,0,0],"timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0}]}```';
+
+      // const String savedResponse =
+      //     '```json{"id":"1712638500000","name":"Woodpecker_Test","author":"gemini","description":"测试 repeatCount 参数。J5 在抬起和落下之间重复执行，模拟敲门或啄木鸟动作。","keyframes":[{"time":0,"positions":[0,0,0,0,0,0],"timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":1.2,"positions":[0,40,60,0,-10,0],"description":"伸向前方，手腕微抬 (J5=-10) 预备","timingFunction":"0.25, 0.1, 0.25, 1.0","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0},{"time":1.6,"positions":[0,40,60,0,30,0],"description":"快速向下敲击 (J5=30)。设置重复 5 次，应观察到连续敲击。","timingFunction":"0.42, 0, 0.58, 1","repeatCount":5,"markerTimeStart":0,"markerTimeEnd":0},{"time":3,"positions":[0,0,0,0,0,0],"description":"测试结束，平稳归位","timingFunction":"0.42, 0, 0.58, 1","repeatCount":0,"markerTimeStart":0,"markerTimeEnd":0}]}```';
+      // final savedResponse = (image: null, text: motion, fromUser: true);
+      // ignore: unnecessary_null_comparison
       if (savedResponse != null) {
         print('---savedResponse: $savedResponse');
 
@@ -425,7 +452,9 @@ class MessageWidget extends StatelessWidget {
                         print('motionJson: $motionJson');
                         final jsonMap = json.decode(motionJson);
 
-                        Motion motion = Motion.fromJson(jsonMap);
+                        Motion parseMotion = Motion.fromJson(jsonMap);
+
+                        Motion motion = computedKF(parseMotion);
 
                         // logger.i(
                         //   '--ai chat motion keyframe: ${motion.toJson()}',
@@ -498,4 +527,30 @@ String escapeSpecialChars(String input) {
       .replaceAll('\r', '\\r') // 转义回车
       .replaceAll('\t', '\\t') // 转义制表符
       .replaceAll('"', '\\"'); // 转义双引号
+}
+
+/// 处理AI返回的动作
+Motion computedKF(Motion motion) {
+  final keyframeList = motion.keyframes;
+  // 构造motion类型数据
+  List<Keyframe> _keyframeList = [];
+  for (int i = 0; i < keyframeList.length; i++) {
+    // 第一帧的时间必须为0
+    if (i == 0) {
+      keyframeList[i].markerTimeStart = 0;
+      keyframeList[i].markerTimeEnd = 0;
+    } else {
+      // 后续时间要加上前一帧的时间，之后就像一个时间尺
+      // keyframeList[i].time += keyframeList[i - 1].time;
+      /// 需要再加上 （重复次数的时间 x 2）。
+      final repeatTime = keyframeList[i].repeatCount * keyframeList[i].time * 2;
+      keyframeList[i].markerTimeEnd =
+          keyframeList[i - 1].markerTimeEnd + repeatTime + keyframeList[i].time;
+      keyframeList[i].markerTimeStart = keyframeList[i - 1].markerTimeEnd;
+    }
+
+    _keyframeList.add(keyframeList[i]);
+  }
+  motion.keyframes = _keyframeList;
+  return motion;
 }
