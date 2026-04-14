@@ -176,51 +176,53 @@ class FlutterGameState extends State<ArmPage> {
     zeroWrapper.position.y = 0;
     threeJs.scene.add(zeroWrapper);
     var zero = await addGltfAsset('zero.glb', 'zero');
-    // 世界坐标默认是y up，在此改为z up
-    // zeroWrapper.rotation.x = -math.pi / 2;
-    // zeroWrapper.add(AxesHelper(1));
-
+    zeroWrapper.add(AxesHelper(0.2));
+    // 世界坐标默认是y up，在此旋转改为z up
+    zeroWrapper.rotation.x = -math.pi / 2;
     var oneWrapper = three.Object3D();
-    // oneWrapper.position.x = 0.1;
-    oneWrapper.position.y = 0.091;
-    oneWrapper.rotateY(math.pi);
-    // oneWrapper.position.z = 1;
+    oneWrapper.position.z = 0.091;
     threeJs.scene.add(oneWrapper);
-    oneWrapper.add(AxesHelper(0.4));
+    oneWrapper.add(AxesHelper(0.1));
     var one = await addGltfAsset('one.glb', 'one');
 
     var twoWrapper = three.Object3D();
-    twoWrapper.position.x = 0;
-    twoWrapper.position.y = 0.05;
-    twoWrapper.position.z = -0.067;
+    twoWrapper.position.z = 0.05;
+    twoWrapper.position.y = -0.067;
+    twoWrapper.rotateX(math.pi / 2);
     threeJs.scene.add(twoWrapper);
-    // twoWrapper.add(AxesHelper(2));
+    twoWrapper.add(AxesHelper(0.1));
     var two = await addGltfAsset('two.glb', 'two');
 
-    //
     var threeWrapper = three.Object3D();
     threeWrapper.position.x = 0;
     threeWrapper.position.y = 0.30;
-    // threeWrapper.position.z = -0.1;
     threeJs.scene.add(threeWrapper);
-    // threeWrapper.add(AxesHelper(2));
+    threeWrapper.add(AxesHelper(0.1));
     var threeGltf = await addGltfAsset('three.glb', 'three');
 
     var fourWrapper = three.Object3D();
-    fourWrapper.position.x = 0.036;
-    fourWrapper.position.y = 0.065;
-    fourWrapper.position.z = 0.065;
+    fourWrapper.position.x = -0.036;
+    fourWrapper.position.y = 0.067;
+    fourWrapper.position.z = -0.065;
+    fourWrapper.rotateX(-math.pi / 2);
     threeJs.scene.add(fourWrapper);
-    // fourWrapper.add(AxesHelper(2));
+    fourWrapper.add(AxesHelper(0.2));
     var four = await addGltfAsset('four.glb', 'four');
 
     var fiveWrapper = three.Object3D();
-    fiveWrapper.position.x = 0;
-    fiveWrapper.position.y = 0.25;
-    fiveWrapper.position.z = 0.044;
+    fiveWrapper.position.z = 0.25;
+    fiveWrapper.rotateX(math.pi / 2);
     threeJs.scene.add(fiveWrapper);
-    // fiveWrapper.add(AxesHelper(2));
+    fiveWrapper.add(AxesHelper(0.1));
     var five = await addGltfAsset('five.glb', 'five');
+
+    var sixWrapper = three.Object3D();
+    sixWrapper.position.y = 0.07;
+    sixWrapper.position.x = -0.055;
+    sixWrapper.position.z = 0.022;
+    sixWrapper.rotateX(-math.pi / 2);
+    threeJs.scene.add(sixWrapper);
+    sixWrapper.add(AxesHelper(0.1));
 
     // 类似web的requestAniamtionFrame
     threeJs.addAnimationEvent((dt) {
@@ -609,12 +611,14 @@ class FlutterGameState extends State<ArmPage> {
         fourWrapper.add(fiveWrapper);
 
         fiveWrapper.add(five?.scene);
+        fiveWrapper.add(sixWrapper);
 
-        oneWrapper.rotation.y = -(jointsCubit.state.joint1 * math.pi) / 180;
-        twoWrapper.rotation.z = (jointsCubit.state.joint2 * math.pi) / 180;
-        threeWrapper.rotation.z = (jointsCubit.state.joint3 * math.pi) / 180;
-        fourWrapper.rotation.y = (jointsCubit.state.joint4 * math.pi) / 180;
-        fiveWrapper.rotation.z = (jointsCubit.state.joint5 * math.pi) / 180;
+        oneWrapper.rotation.z = (jointsCubit.state.joint1 * math.pi) / 180;
+        twoWrapper.rotation.z = -(jointsCubit.state.joint2 * math.pi) / 180;
+        threeWrapper.rotation.z = -(jointsCubit.state.joint3 * math.pi) / 180;
+        fourWrapper.rotation.z = (jointsCubit.state.joint4 * math.pi) / 180;
+        fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
+        sixWrapper.rotation.z = (jointsCubit.state.joint6 * math.pi) / 180;
 
         final result1 = fk.solve([
           -jointsCubit.state.joint1,
@@ -660,31 +664,33 @@ class FlutterGameState extends State<ArmPage> {
   }
 
   void initGLTF(gltf, type) {
-    // gltf.scene.scale = three.Vector3(5, 5, 5);
+    double oneDegree = math.pi / 180;
 
     if (type == 'zero') {
+      gltf.scene.rotateX(math.pi / 2);
     } else if (type == 'one') {
+      gltf.scene.rotateX(math.pi / 2);
+      gltf.scene.rotateY(math.pi);
     } else if (type == 'two') {
-      gltf.scene.translateX(0.045);
+      gltf.scene.translateX(-0.045);
       gltf.scene.translateY(0.123);
-      double oneDegree = math.pi / 180;
-      gltf.scene.rotation.set(oneDegree * 90, oneDegree * 90, oneDegree * 0.0);
+      gltf.scene.rotation.set(oneDegree * 0, oneDegree * -90, oneDegree * 90.0);
     } else if (type == 'three') {
-      gltf.scene.rotation.set(math.pi / 2, math.pi / 180 * -116, 0.0);
-    } else if (type == 'four') {
-      gltf.scene.rotation.set(0.0, math.pi / 180 * 90, math.pi / 180 * -90);
-      // gltf.scene.translateX(-1.25);
-      gltf.scene.translateX(-0.25);
-      gltf.scene.translateZ(-0.0);
-      gltf.scene.translateY(-0.07);
-      // gltf.scene.translateY(0.55);
-    } else if (type == 'five') {
       gltf.scene.rotation.set(
-        math.pi / 180 * 0.0,
-        math.pi / 180 * 270,
-        math.pi / 180 * 90,
+        math.pi / 180 * -90,
+        math.pi / 180 * 64,
+        math.pi / 180 * 0,
       );
-      gltf.scene.translateY(0.005);
+    } else if (type == 'four') {
+      // gltf.scene.translateX(0.002);
+      gltf.scene.translateY(0.07);
+      gltf.scene.translateZ(0.25);
+      gltf.scene.rotateZ(math.pi);
+      gltf.scene.rotateY(math.pi / 2);
+    } else if (type == 'five') {
+      gltf.scene.translateZ(-0.037);
+      gltf.scene.rotateX(math.pi / 180 * 90);
+      gltf.scene.rotateY(math.pi / 180 * 90);
     }
   }
 }
