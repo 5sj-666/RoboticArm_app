@@ -3,7 +3,7 @@ import 'package:robotic_arm_app/types/motions.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:three_js/three_js.dart' as three;
-// import 'package:three_js_helpers/three_js_helpers.dart';
+import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:robotic_arm_app/utils/bezierX2Y.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
@@ -12,6 +12,7 @@ import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:three_js_objects/three_js_objects.dart';
+import 'package:robotic_arm_app/utils/kinematics.dart';
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -30,6 +31,8 @@ class FlutterGameState extends State<ArmPage> {
   late RunTimeWorkSpace rt;
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
   late List preparingInitPosition;
+
+  late final fk;
 
   // late
 
@@ -50,6 +53,8 @@ class FlutterGameState extends State<ArmPage> {
     bleCubit = BlocProvider.of<BleCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
+
+    fk = RobotFK();
   }
 
   @override
@@ -110,8 +115,8 @@ class FlutterGameState extends State<ArmPage> {
     // final gridHelper = GridHelper(2, 2, 0xffffff, 0xffffff);
     // threeJs.scene.add(gridHelper);
 
-    // final axesHelper = AxesHelper(5);
-    // threeJs.scene.add(axesHelper);
+    final axesHelper = AxesHelper(1);
+    threeJs.scene.add(axesHelper);
 
     // 创建 Sky 对象
     final sky = Sky.create();
@@ -142,7 +147,7 @@ class FlutterGameState extends State<ArmPage> {
     final water = Water(geometry, options);
     water.rotation.x = -math.pi / 2; // 将水面旋转为水平面
     water.position.y = -0.5;
-    threeJs.scene.add(water);
+    // threeJs.scene.add(water);
 
     final directionalLight = three.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.setValues(100, 10, -50);
@@ -167,14 +172,21 @@ class FlutterGameState extends State<ArmPage> {
     );
     orbitControle.update();
 
-    await addGltfAsset('zero.glb', 'zero');
+    var zeroWrapper = three.Object3D();
+    zeroWrapper.position.y = 0;
+    threeJs.scene.add(zeroWrapper);
+    var zero = await addGltfAsset('zero.glb', 'zero');
+    // 世界坐标默认是y up，在此改为z up
+    // zeroWrapper.rotation.x = -math.pi / 2;
+    // zeroWrapper.add(AxesHelper(1));
+
     var oneWrapper = three.Object3D();
     // oneWrapper.position.x = 0.1;
     oneWrapper.position.y = 0.091;
     oneWrapper.rotateY(math.pi);
     // oneWrapper.position.z = 1;
     threeJs.scene.add(oneWrapper);
-    // oneWrapper.add(AxesHelper(2));
+    oneWrapper.add(AxesHelper(0.4));
     var one = await addGltfAsset('one.glb', 'one');
 
     var twoWrapper = three.Object3D();
@@ -561,11 +573,29 @@ class FlutterGameState extends State<ArmPage> {
     //   print('Renderer initialization attempt completed.');
     // }
 
-    // To allow render overlay on top of sprited sphere 允许在精灵球顶部渲染覆盖内容
+    // 一个小长方形，用来展示运动学正解的结果
+    // 1. 创建几何体（宽、高、深）
+    var geometry1 = three.BoxGeometry(0.2, 0.05, 0.025);
+
+    // 2. 创建材质
+    var material = three.MeshBasicMaterial({
+      // color: 0x00ff00,
+      // wireframe: false // 实体，不是线框
+    });
+
+    // 3. 创建网格
+    var cube = three.Mesh(geometry1, material);
+
+    // 4. 添加到场景
+    threeJs.scene.add(cube);
+
     threeJs.renderer?.autoClear = false;
 
     void render() {
       threeJs.addAnimationEvent((dt) {
+        zeroWrapper.add(zero?.scene);
+        zeroWrapper.add(oneWrapper);
+
         oneWrapper.add(one?.scene);
         oneWrapper.add(twoWrapper);
 
@@ -585,6 +615,32 @@ class FlutterGameState extends State<ArmPage> {
         threeWrapper.rotation.z = (jointsCubit.state.joint3 * math.pi) / 180;
         fourWrapper.rotation.y = (jointsCubit.state.joint4 * math.pi) / 180;
         fiveWrapper.rotation.z = (jointsCubit.state.joint5 * math.pi) / 180;
+
+        final result1 = fk.solve([
+          -jointsCubit.state.joint1,
+          -jointsCubit.state.joint2,
+          -jointsCubit.state.joint3,
+          -jointsCubit.state.joint4,
+          -jointsCubit.state.joint5,
+          -jointsCubit.state.joint6,
+        ]);
+
+        // threejs的坐标系问题，在此y和z轴互相调换，需要之后优化调整
+        // 目前为了验证，暂时只调整符号
+        cube.position = three.Vector3(
+          result1['position']['x'],
+          result1['position']['y'],
+          result1['position']['z'],
+        );
+        // 计算出来的值映射到threejs坐标系是相反的，所以在此取反
+        // 可能是自己在threejs初始化时，坐标没有调整好，需要之后校验和优化
+        cube.setRotationFromEuler(
+          three.Euler(
+            -result1['orientation']['roll'],
+            -result1['orientation']['yaw'],
+            -result1['orientation']['pitch'],
+          ),
+        );
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       });
