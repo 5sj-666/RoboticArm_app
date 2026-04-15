@@ -217,9 +217,7 @@ class FlutterGameState extends State<ArmPage> {
     var five = await addGltfAsset('five.glb', 'five');
 
     var sixWrapper = three.Object3D();
-    sixWrapper.position.y = 0.07;
-    sixWrapper.position.x = -0.055;
-    sixWrapper.position.z = 0.022;
+    sixWrapper.position.y = 0.078;
     sixWrapper.rotateX(-math.pi / 2);
     threeJs.scene.add(sixWrapper);
     sixWrapper.add(AxesHelper(0.1));
@@ -577,7 +575,8 @@ class FlutterGameState extends State<ArmPage> {
 
     // 一个小长方形，用来展示运动学正解的结果
     // 1. 创建几何体（宽、高、深）
-    var geometry1 = three.BoxGeometry(0.2, 0.05, 0.025);
+    // var geometry1 = three.BoxGeometry(0.2, 0.05, 0.025);
+    var geometry1 = three.BoxGeometry(0.1, 0.04, 0.02);
 
     // 2. 创建材质
     var material = three.MeshBasicMaterial({
@@ -589,7 +588,7 @@ class FlutterGameState extends State<ArmPage> {
     var cube = three.Mesh(geometry1, material);
 
     // 4. 添加到场景
-    threeJs.scene.add(cube);
+    zeroWrapper.add(cube);
 
     threeJs.renderer?.autoClear = false;
 
@@ -621,29 +620,25 @@ class FlutterGameState extends State<ArmPage> {
         sixWrapper.rotation.z = (jointsCubit.state.joint6 * math.pi) / 180;
 
         final result1 = fk.solve([
-          -jointsCubit.state.joint1,
+          jointsCubit.state.joint1,
           -jointsCubit.state.joint2,
           -jointsCubit.state.joint3,
           -jointsCubit.state.joint4,
           -jointsCubit.state.joint5,
           -jointsCubit.state.joint6,
         ]);
+        // print("$result1");
 
-        // threejs的坐标系问题，在此y和z轴互相调换，需要之后优化调整
-        // 目前为了验证，暂时只调整符号
         cube.position = three.Vector3(
           result1['position']['x'],
           result1['position']['y'],
           result1['position']['z'],
         );
-        // 计算出来的值映射到threejs坐标系是相反的，所以在此取反
-        // 可能是自己在threejs初始化时，坐标没有调整好，需要之后校验和优化
-        cube.setRotationFromEuler(
-          three.Euler(
-            -result1['orientation']['roll'],
-            -result1['orientation']['yaw'],
-            -result1['orientation']['pitch'],
-          ),
+        cube.quaternion.set(
+          result1["quaternion"]['x'],
+          result1["quaternion"]['y'],
+          result1["quaternion"]['z'],
+          result1["quaternion"]['w'],
         );
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
@@ -688,7 +683,7 @@ class FlutterGameState extends State<ArmPage> {
       gltf.scene.rotateZ(math.pi);
       gltf.scene.rotateY(math.pi / 2);
     } else if (type == 'five') {
-      gltf.scene.translateZ(-0.037);
+      gltf.scene.translateZ(-0.042);
       gltf.scene.rotateX(math.pi / 180 * 90);
       gltf.scene.rotateY(math.pi / 180 * 90);
     }
