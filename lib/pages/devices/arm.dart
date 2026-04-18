@@ -13,6 +13,7 @@ import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:three_js_objects/three_js_objects.dart';
 import 'package:robotic_arm_app/utils/kinematics.dart';
+// import 'package:robotic_arm_app/utils/ik.dart';
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -32,6 +33,7 @@ class FlutterGameState extends State<ArmPage> {
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
   late List preparingInitPosition;
 
+  // ignore: prefer_typing_uninitialized_variables
   late final fk;
 
   // late
@@ -575,8 +577,7 @@ class FlutterGameState extends State<ArmPage> {
 
     // 一个小长方形，用来展示运动学正解的结果
     // 1. 创建几何体（宽、高、深）
-    // var geometry1 = three.BoxGeometry(0.2, 0.05, 0.025);
-    var geometry1 = three.BoxGeometry(0.1, 0.04, 0.02);
+    var fkCuboid = three.BoxGeometry(0.2, 0.05, 0.025);
 
     // 2. 创建材质
     var material = three.MeshBasicMaterial({
@@ -585,7 +586,7 @@ class FlutterGameState extends State<ArmPage> {
     });
 
     // 3. 创建网格
-    var cube = three.Mesh(geometry1, material);
+    var cube = three.Mesh(fkCuboid, material);
 
     // 4. 添加到场景
     zeroWrapper.add(cube);
@@ -622,10 +623,10 @@ class FlutterGameState extends State<ArmPage> {
         final result1 = fk.solve([
           jointsCubit.state.joint1,
           -jointsCubit.state.joint2,
-          -jointsCubit.state.joint3,
-          -jointsCubit.state.joint4,
-          -jointsCubit.state.joint5,
-          -jointsCubit.state.joint6,
+          jointsCubit.state.joint3,
+          jointsCubit.state.joint4,
+          jointsCubit.state.joint5,
+          jointsCubit.state.joint6,
         ]);
         // print("$result1");
 
@@ -634,6 +635,18 @@ class FlutterGameState extends State<ArmPage> {
           result1['position']['y'],
           result1['position']['z'],
         );
+        // 欧拉角代入姿态会错误，使用四元数
+        // cube.setRotationFromEuler(
+        //   three.Euler(
+        //     result1['orientation']['roll'],
+        //     result1['orientation']['pitch'],
+        //     result1['orientation']['roll'],
+        //     // rotationOrders.zyx
+        //     three.RotationOrders.zyx,
+        //   ),
+        // );
+
+        // 四元数
         cube.quaternion.set(
           result1["quaternion"]['x'],
           result1["quaternion"]['y'],
