@@ -44,6 +44,8 @@ dependencies:
   flutter_blue_plus: ^2.1.0
   permission_handler: ^12.0.1
   draggable_float_widget: ^0.1.0
+  vector_math: ^2.2.0
+  three_js_transform_controls: ^0.2.1
 
 
 dev_dependencies:
@@ -75,6 +77,9 @@ flutter:
     - assets/three.glb
     - assets/four.glb
     - assets/five.glb
+    - assets/link-3_simple.glb
+    - assets/link-5_simple.glb
+    - assets/pose_link-5_simple.glb
     - assets/urdf/stl/link0.STL
     - assets/urdf/stl/link1.STL
     - assets/urdf/stl/link2.STL

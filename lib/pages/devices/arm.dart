@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'dart:async';
@@ -10,10 +12,19 @@ import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
+import 'package:robotic_arm_app/cubit/ik_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:three_js_objects/three_js_objects.dart';
-import 'package:robotic_arm_app/utils/kinematics.dart';
+// import 'package:three_js_controls/three_js_controls.dart';
+import 'package:three_js_transform_controls/three_js_transform_controls.dart';
+// import 'package:robotic_arm_app/utils/kinematics.dart';
 // import 'package:robotic_arm_app/utils/ik.dart';
+// import 'package:robotic_arm_app/utils/kinematics_grok.dart';
+// import 'package:robotic_arm_app/utils/km_chatgpt.dart';
+// import 'package:vector_math/vector_math_64.dart';
+// import 'package:robotic_arm_app/utils/km_simple.dart';
+import 'package:robotic_arm_app/utils/km_simple_gemini.dart';
+import 'package:vector_math/vector_math_64.dart' as vector_math;
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -28,15 +39,11 @@ class FlutterGameState extends State<ArmPage> {
   late MotionsCubit motionsCubit;
   late BleCubit bleCubit;
   late MotorLogCubit motorLogCubit;
+  late IKCubit ikCubit;
 
   late RunTimeWorkSpace rt;
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
   late List preparingInitPosition;
-
-  // ignore: prefer_typing_uninitialized_variables
-  late final fk;
-
-  // late
 
   @override
   void initState() {
@@ -53,10 +60,9 @@ class FlutterGameState extends State<ArmPage> {
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
     motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
     bleCubit = BlocProvider.of<BleCubit>(context);
+    ikCubit = BlocProvider.of<IKCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
-
-    fk = RobotFK();
   }
 
   @override
@@ -200,11 +206,13 @@ class FlutterGameState extends State<ArmPage> {
     threeWrapper.position.y = 0.30;
     threeJs.scene.add(threeWrapper);
     threeWrapper.add(AxesHelper(0.1));
-    var threeGltf = await addGltfAsset('three.glb', 'three');
+    // var threeGltf = await addGltfAsset('three.glb', 'three');
+    var threeGltf = await addGltfAsset('link-3_simple.glb', 'three');
 
     var fourWrapper = three.Object3D();
-    fourWrapper.position.x = -0.036;
-    fourWrapper.position.y = 0.067;
+    // fourWrapper.position.x = -0.036;
+    // fourWrapper.position.y = 0.067;
+    fourWrapper.position.y = 0.075;
     fourWrapper.position.z = -0.065;
     fourWrapper.rotateX(-math.pi / 2);
     threeJs.scene.add(fourWrapper);
@@ -216,10 +224,10 @@ class FlutterGameState extends State<ArmPage> {
     fiveWrapper.rotateX(math.pi / 2);
     threeJs.scene.add(fiveWrapper);
     fiveWrapper.add(AxesHelper(0.1));
-    var five = await addGltfAsset('five.glb', 'five');
+    var five = await addGltfAsset('link-5_simple.glb', 'five');
 
     var sixWrapper = three.Object3D();
-    sixWrapper.position.y = 0.078;
+    sixWrapper.position.y = 0.09;
     sixWrapper.rotateX(-math.pi / 2);
     threeJs.scene.add(sixWrapper);
     sixWrapper.add(AxesHelper(0.1));
@@ -575,14 +583,101 @@ class FlutterGameState extends State<ArmPage> {
     //   print('Renderer initialization attempt completed.');
     // }
 
+    // 一个小长方体，用来展示逆解姿态
+    var ikCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
+    // var fkCuboid = three.BoxGeometry(0.01, 0.01, 0.01);
+
+    // 2. 创建材质
+    var ikMaterial = three.MeshBasicMaterial({
+      three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
+    });
+
+    // 3. 创建网格
+    var ikCube = three.Mesh(ikCuboid, ikMaterial);
+
+    final ikPoseCtrl = three.Object3D();
+    ikPoseCtrl.position = three.Vector3(0.2, 0.2, 0.2);
+    // var poseGltf = await addGltfAsset(
+    //   'pose_link-5_simple.glb',
+    //   'pose_link-5_simple',
+    // );
+    // ikPoseCtrl.add(poseGltf.scene);
+    // poseGltf.add(poseGltf);
+    ikPoseCtrl.add(ikCube);
+    ikPoseCtrl.add(AxesHelper(0.2));
+
+    // 移动控制
+    final control = TransformControls(threeJs.camera, threeJs.globalKey);
+    control.attach(ikPoseCtrl);
+
+    control.mode = ikCubit.state.dragPose.mode;
+    control.size = 0.5;
+
+    // threeJs.scene.add(control);
+    threeJs.scene.add(control);
+    zeroWrapper.add(ikPoseCtrl);
+
+    List<double>? getIK(three.Matrix4 mat) {
+      final a = vector_math.Matrix4.fromFloat64List(
+        Float64List.fromList(mat.storage),
+      );
+      List<List<double>> allSolutions = RobotKm.ik(a);
+
+      List avaiableList = [];
+
+      for (int i = 0; i < allSolutions.length; i++) {
+        var sol = allSolutions[i];
+        print("解1 #$i: ${sol.map((item) => item.toStringAsFixed(4))}");
+        var mapped = sol.map(
+          (item) => double.parse((item * 180 / math.pi).toStringAsFixed(4)),
+        );
+
+        List<double> solDeg = mapped.toList();
+        print("解 #$i: $solDeg");
+
+        bool isLeagle = true;
+        for (int j = 0; j < solDeg.length; j++) {
+          if (solDeg[j] > 145.0 || solDeg[j] < -145.0) {
+            isLeagle = false;
+          }
+        }
+        if (isLeagle) {
+          avaiableList.add(solDeg);
+        }
+      }
+      if (avaiableList.isNotEmpty) {
+        print('有合法解：$avaiableList[0]');
+        jointsCubit.setJoints(
+          JointsState(
+            joint1: avaiableList[0][0],
+            joint2: -avaiableList[0][1],
+            joint3: -avaiableList[0][2],
+            joint4: avaiableList[0][3],
+            joint5: -avaiableList[0][4],
+            joint6: avaiableList[0][5],
+          ),
+        );
+      }
+
+      return [];
+    }
+
+    control.addEventListener('change', (event) {
+      threeJs.render();
+      // 将位姿写入
+      getIK(ikPoseCtrl.matrix);
+    });
+    control.addEventListener('dragging-changed', (event) {
+      orbitControle.enabled = !event.value;
+    });
+
     // 一个小长方形，用来展示运动学正解的结果
-    // 1. 创建几何体（宽、高、深）
-    var fkCuboid = three.BoxGeometry(0.2, 0.05, 0.025);
+    var fkCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
+    // var fkCuboid = three.BoxGeometry(0.01, 0.01, 0.01);
 
     // 2. 创建材质
     var material = three.MeshBasicMaterial({
-      // color: 0x00ff00,
-      // wireframe: false // 实体，不是线框
+      three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
     });
 
     // 3. 创建网格
@@ -593,8 +688,58 @@ class FlutterGameState extends State<ArmPage> {
 
     threeJs.renderer?.autoClear = false;
 
+    // FKResult fkResult = forwardKinematics([
+    //   jointsCubit.state.joint1 * math.pi / 180,
+    //   -jointsCubit.state.joint2 * math.pi / 180,
+    //   jointsCubit.state.joint3 * math.pi / 180,
+    //   jointsCubit.state.joint4 * math.pi / 180,
+    //   jointsCubit.state.joint5 * math.pi / 180,
+    //   jointsCubit.state.joint6 * math.pi / 180,
+    // ]);
+
+    // // cube.position = Vector3(fkResult.position.x, );
+    // cube.position = three.Vector3(
+    //   fkResult.position[0],
+    //   fkResult.position[1],
+    //   fkResult.position[2],
+    // );
+
+    // void verifyKinematics() {
+    //   // 1. 定义你的原始输入 (弧度)
+    // List<double> initialQ = [0.2* math.pi / 180, 0.5* math.pi / 180, -0.3* math.pi / 180, 0.1* math.pi / 180, 0.8* math.pi / 180, 0.4* math.pi / 180];
+    List<double> initialQ = [1.2, 0.0, -0.4, 1.1, 0.9, 0.2];
+
+    print("输入角度$initialQ");
+
+    //   // 2. 计算正解矩阵
+    var fkResult = RobotKm.fk(initialQ);
+
+    //   // 3. 计算所有可能的逆解
+    List<List<double>> allSolutions = RobotKm.ik(fkResult.transformation);
+
+    // print("找到 ${allSolutions.length} 组数学解：\n");
+
+    for (int i = 0; i < allSolutions.length; i++) {
+      var sol = allSolutions[i];
+
+      print("解 #$i: ${sol.map((item) => item.toStringAsFixed(4))}");
+      // // 计算当前解与初始解的误差
+      // double error = 0;
+      // for (int j = 0; j < 6; j++) {
+      //   error += (sol[j] - initialQ[j]).abs();
+      // }
+
+      // String matchStatus = error < 0.001 ? "【匹配成功！】" : "";
+      // print(
+      //   "解 #$i: ${sol.map((e) => e.toStringAsFixed(4)).toList()} $matchStatus",
+      // );
+      // }
+    }
+
     void render() {
       threeJs.addAnimationEvent((dt) {
+        control.mode = ikCubit.state.dragPose.mode;
+
         zeroWrapper.add(zero?.scene);
         zeroWrapper.add(oneWrapper);
 
@@ -620,39 +765,27 @@ class FlutterGameState extends State<ArmPage> {
         fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
         sixWrapper.rotation.z = (jointsCubit.state.joint6 * math.pi) / 180;
 
-        final result1 = fk.solve([
-          jointsCubit.state.joint1,
-          -jointsCubit.state.joint2,
-          jointsCubit.state.joint3,
-          jointsCubit.state.joint4,
-          jointsCubit.state.joint5,
-          jointsCubit.state.joint6,
-        ]);
-        // print("$result1");
+        // var result1 = RobotKm.fk([
+        //   jointsCubit.state.joint1 * math.pi / 180,
+        //   -jointsCubit.state.joint2 * math.pi / 180,
+        //   -jointsCubit.state.joint3 * math.pi / 180,
+        //   jointsCubit.state.joint4 * math.pi / 180,
+        //   -jointsCubit.state.joint5 * math.pi / 180,
+        //   jointsCubit.state.joint6 * math.pi / 180,
+        // ]);
 
-        cube.position = three.Vector3(
-          result1['position']['x'],
-          result1['position']['y'],
-          result1['position']['z'],
-        );
-        // 欧拉角代入姿态会错误，使用四元数
-        // cube.setRotationFromEuler(
-        //   three.Euler(
-        //     result1['orientation']['roll'],
-        //     result1['orientation']['pitch'],
-        //     result1['orientation']['roll'],
-        //     // rotationOrders.zyx
-        //     three.RotationOrders.zyx,
-        //   ),
+        // cube.position = three.Vector3(
+        //   result1.position.x,
+        //   result1.position.y,
+        //   result1.position.z,
         // );
 
-        // 四元数
-        cube.quaternion.set(
-          result1["quaternion"]['x'],
-          result1["quaternion"]['y'],
-          result1["quaternion"]['z'],
-          result1["quaternion"]['w'],
-        );
+        // cube.quaternion = three.Quaternion(
+        //   result1.quaternion.x,
+        //   result1.quaternion.y,
+        //   result1.quaternion.z,
+        //   result1.quaternion.w,
+        // );
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       });
@@ -686,19 +819,24 @@ class FlutterGameState extends State<ArmPage> {
     } else if (type == 'three') {
       gltf.scene.rotation.set(
         math.pi / 180 * -90,
-        math.pi / 180 * 64,
+        math.pi / 180 * 95,
         math.pi / 180 * 0,
       );
     } else if (type == 'four') {
-      // gltf.scene.translateX(0.002);
       gltf.scene.translateY(0.07);
       gltf.scene.translateZ(0.25);
+      gltf.scene.translateX(0.001);
       gltf.scene.rotateZ(math.pi);
       gltf.scene.rotateY(math.pi / 2);
     } else if (type == 'five') {
       gltf.scene.translateZ(-0.042);
       gltf.scene.rotateX(math.pi / 180 * 90);
       gltf.scene.rotateY(math.pi / 180 * 90);
+    } else if (type == "pose_link-5_simple") {
+      gltf.scene.translateZ(-0.09);
+      gltf.scene.translateY(0.045);
+      gltf.scene.rotateX(math.pi);
+      gltf.scene.rotateY(math.pi / 2);
     }
   }
 }
