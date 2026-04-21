@@ -585,31 +585,20 @@ class FlutterGameState extends State<ArmPage> {
 
     // 一个小长方体，用来展示逆解姿态
     var ikCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
-    // var fkCuboid = three.BoxGeometry(0.01, 0.01, 0.01);
-
-    // 2. 创建材质
     var ikMaterial = three.MeshBasicMaterial({
       three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
+      three.MaterialProperty.transparent: true, // 必须开启透明混合
+      three.MaterialProperty.opacity: 0.5, // 设置透明度，范围从 0.0 到 1.0
     });
-
-    // 3. 创建网格
     var ikCube = three.Mesh(ikCuboid, ikMaterial);
-
     final ikPoseCtrl = three.Object3D();
     ikPoseCtrl.position = three.Vector3(0.2, 0.2, 0.2);
-    // var poseGltf = await addGltfAsset(
-    //   'pose_link-5_simple.glb',
-    //   'pose_link-5_simple',
-    // );
-    // ikPoseCtrl.add(poseGltf.scene);
-    // poseGltf.add(poseGltf);
     ikPoseCtrl.add(ikCube);
     ikPoseCtrl.add(AxesHelper(0.2));
 
     // 移动控制
     final control = TransformControls(threeJs.camera, threeJs.globalKey);
     control.attach(ikPoseCtrl);
-
     control.mode = ikCubit.state.dragPose.mode;
     control.size = 0.5;
 
@@ -617,124 +606,47 @@ class FlutterGameState extends State<ArmPage> {
     threeJs.scene.add(control);
     zeroWrapper.add(ikPoseCtrl);
 
-    List<double>? getIK(three.Matrix4 mat) {
-      final a = vector_math.Matrix4.fromFloat64List(
-        Float64List.fromList(mat.storage),
+    vector_math.Matrix4 threeMat2mat(three.Matrix4 mat) {
+      return vector_math.Matrix4.fromFloat64List(
+        Float64List.fromList(ikPoseCtrl.matrix.storage),
       );
-      List<List<double>> allSolutions = RobotKm.ik(a);
-
-      List avaiableList = [];
-
-      for (int i = 0; i < allSolutions.length; i++) {
-        var sol = allSolutions[i];
-        print("解1 #$i: ${sol.map((item) => item.toStringAsFixed(4))}");
-        var mapped = sol.map(
-          (item) => double.parse((item * 180 / math.pi).toStringAsFixed(4)),
-        );
-
-        List<double> solDeg = mapped.toList();
-        print("解 #$i: $solDeg");
-
-        bool isLeagle = true;
-        for (int j = 0; j < solDeg.length; j++) {
-          if (solDeg[j] > 145.0 || solDeg[j] < -145.0) {
-            isLeagle = false;
-          }
-        }
-        if (isLeagle) {
-          avaiableList.add(solDeg);
-        }
-      }
-      if (avaiableList.isNotEmpty) {
-        print('有合法解：$avaiableList[0]');
-        jointsCubit.setJoints(
-          JointsState(
-            joint1: avaiableList[0][0],
-            joint2: -avaiableList[0][1],
-            joint3: -avaiableList[0][2],
-            joint4: avaiableList[0][3],
-            joint5: -avaiableList[0][4],
-            joint6: avaiableList[0][5],
-          ),
-        );
-      }
-
-      return [];
     }
 
     control.addEventListener('change', (event) {
       threeJs.render();
-      // 将位姿写入
-      getIK(ikPoseCtrl.matrix);
+
+      /// 获取逆解集合
+      List<List<double>> allSolutions = RobotKm.ik(
+        threeMat2mat(ikPoseCtrl.matrix),
+      );
+
+      /// 获取最优解
+      List<double> predegs = ikCubit.state.preJointsDeg
+          .map((ele) => ele * math.pi / 180)
+          .toList();
+      List<double> goodOneSol = RobotKm.getBestSolution(allSolutions, predegs);
+      if (goodOneSol.isNotEmpty) {
+        print('好解：$goodOneSol');
+        jointsCubit.setJoints(
+          JointsState(
+            joint1: goodOneSol[0],
+            joint2: -goodOneSol[1],
+            joint3: -goodOneSol[2],
+            joint4: goodOneSol[3],
+            joint5: -goodOneSol[4],
+            joint6: goodOneSol[5],
+          ),
+        );
+        ikCubit.setPreJointsDeg(goodOneSol);
+      } else {
+        ikCubit.setPreJointsDeg([]);
+      }
     });
     control.addEventListener('dragging-changed', (event) {
       orbitControle.enabled = !event.value;
     });
 
-    // 一个小长方形，用来展示运动学正解的结果
-    var fkCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
-    // var fkCuboid = three.BoxGeometry(0.01, 0.01, 0.01);
-
-    // 2. 创建材质
-    var material = three.MeshBasicMaterial({
-      three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
-    });
-
-    // 3. 创建网格
-    var cube = three.Mesh(fkCuboid, material);
-
-    // 4. 添加到场景
-    zeroWrapper.add(cube);
-
     threeJs.renderer?.autoClear = false;
-
-    // FKResult fkResult = forwardKinematics([
-    //   jointsCubit.state.joint1 * math.pi / 180,
-    //   -jointsCubit.state.joint2 * math.pi / 180,
-    //   jointsCubit.state.joint3 * math.pi / 180,
-    //   jointsCubit.state.joint4 * math.pi / 180,
-    //   jointsCubit.state.joint5 * math.pi / 180,
-    //   jointsCubit.state.joint6 * math.pi / 180,
-    // ]);
-
-    // // cube.position = Vector3(fkResult.position.x, );
-    // cube.position = three.Vector3(
-    //   fkResult.position[0],
-    //   fkResult.position[1],
-    //   fkResult.position[2],
-    // );
-
-    // void verifyKinematics() {
-    //   // 1. 定义你的原始输入 (弧度)
-    // List<double> initialQ = [0.2* math.pi / 180, 0.5* math.pi / 180, -0.3* math.pi / 180, 0.1* math.pi / 180, 0.8* math.pi / 180, 0.4* math.pi / 180];
-    List<double> initialQ = [1.2, 0.0, -0.4, 1.1, 0.9, 0.2];
-
-    print("输入角度$initialQ");
-
-    //   // 2. 计算正解矩阵
-    var fkResult = RobotKm.fk(initialQ);
-
-    //   // 3. 计算所有可能的逆解
-    List<List<double>> allSolutions = RobotKm.ik(fkResult.transformation);
-
-    // print("找到 ${allSolutions.length} 组数学解：\n");
-
-    for (int i = 0; i < allSolutions.length; i++) {
-      var sol = allSolutions[i];
-
-      print("解 #$i: ${sol.map((item) => item.toStringAsFixed(4))}");
-      // // 计算当前解与初始解的误差
-      // double error = 0;
-      // for (int j = 0; j < 6; j++) {
-      //   error += (sol[j] - initialQ[j]).abs();
-      // }
-
-      // String matchStatus = error < 0.001 ? "【匹配成功！】" : "";
-      // print(
-      //   "解 #$i: ${sol.map((e) => e.toStringAsFixed(4)).toList()} $matchStatus",
-      // );
-      // }
-    }
 
     void render() {
       threeJs.addAnimationEvent((dt) {
@@ -764,28 +676,6 @@ class FlutterGameState extends State<ArmPage> {
         fourWrapper.rotation.z = (jointsCubit.state.joint4 * math.pi) / 180;
         fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
         sixWrapper.rotation.z = (jointsCubit.state.joint6 * math.pi) / 180;
-
-        // var result1 = RobotKm.fk([
-        //   jointsCubit.state.joint1 * math.pi / 180,
-        //   -jointsCubit.state.joint2 * math.pi / 180,
-        //   -jointsCubit.state.joint3 * math.pi / 180,
-        //   jointsCubit.state.joint4 * math.pi / 180,
-        //   -jointsCubit.state.joint5 * math.pi / 180,
-        //   jointsCubit.state.joint6 * math.pi / 180,
-        // ]);
-
-        // cube.position = three.Vector3(
-        //   result1.position.x,
-        //   result1.position.y,
-        //   result1.position.z,
-        // );
-
-        // cube.quaternion = three.Quaternion(
-        //   result1.quaternion.x,
-        //   result1.quaternion.y,
-        //   result1.quaternion.z,
-        //   result1.quaternion.w,
-        // );
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       });

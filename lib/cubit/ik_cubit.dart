@@ -26,23 +26,37 @@ class Pose {
 }
 
 class IKState {
-  // final int index;
-  // final
-  // HomeState({this.index = 0});
-
   final Pose dragPose;
-  IKState({Pose? dragPose}) : dragPose = dragPose ?? Pose();
+  // 建议使用 final，状态变更通过 copyWith 产生新对象
+  final List<double> preJointsDeg;
 
-  copyWith({Pose? dragPose}) {
-    return IKState(dragPose: dragPose ?? this.dragPose);
+  // 修正构造函数赋值
+  IKState({required this.dragPose, required this.preJointsDeg});
+
+  // 提供一个初始状态的工厂方法
+  factory IKState.initial() => IKState(
+    dragPose: Pose(mode: GizmoType.translate),
+    preJointsDeg: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+  );
+
+  IKState copyWith({Pose? dragPose, List<double>? preJointsDeg}) {
+    return IKState(
+      dragPose: dragPose ?? this.dragPose,
+      // 关键点：使用 List.from 强制创建一个新的数组副本
+      preJointsDeg: preJointsDeg ?? List.from(this.preJointsDeg),
+    );
   }
 }
 
 class IKCubit extends Cubit<IKState> {
-  IKCubit() : super(IKState());
+  IKCubit() : super(IKState.initial());
 
   void setMode(GizmoType mode) {
     final newPose = Pose(mode: mode);
     emit(state.copyWith(dragPose: newPose));
+  }
+
+  void setPreJointsDeg(List<double> degs) {
+    emit(state.copyWith(preJointsDeg: degs));
   }
 }
