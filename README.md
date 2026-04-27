@@ -93,3 +93,6 @@ location： [18, 0, 253, motorId, 22, 112, 0, 0, 63, 128, 0, 0]  // 后四位是
         ...
     ]
 }
+
+3d路径编辑：
+https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_spline_editor.html

@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+// import 'package:auto_route/auto_route.dart';
 
 import 'package:flutter/material.dart';
 import 'package:robotic_arm_app/types/motions.dart';
@@ -23,8 +23,17 @@ import 'package:three_js_transform_controls/three_js_transform_controls.dart';
 // import 'package:robotic_arm_app/utils/km_chatgpt.dart';
 // import 'package:vector_math/vector_math_64.dart';
 // import 'package:robotic_arm_app/utils/km_simple.dart';
-import 'package:robotic_arm_app/utils/km_simple_gemini.dart';
-import 'package:vector_math/vector_math_64.dart' as vector_math;
+
+// import 'package:robotic_arm_app/utils/km_simple_gemini.dart';
+// import 'package:vector_math/vector_math_64.dart' as vector_math;
+// import 'dart:typed_data';
+
+class SplineObj {
+  final three.CatmullRomCurve3 curve;
+  final three.Line line;
+
+  SplineObj({required this.curve, required this.line});
+}
 
 class ArmPage extends StatefulWidget {
   const ArmPage({super.key});
@@ -45,6 +54,27 @@ class FlutterGameState extends State<ArmPage> {
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
   late List preparingInitPosition;
 
+  // 路径设置功能的变量（spline）
+  List<three.Object3D> nodesHelpers = [];
+  List<three.Vector3> nodesSpline = [
+    three.Vector3(0.2, 0.2, 0.2),
+    three.Vector3(0.3, 0.3, 0.3),
+    three.Vector3(0.4, 0.4, 0.4),
+    three.Vector3(0.5, 0.5, 0.5),
+  ];
+  late TransformControls nodeCtrol;
+  // 线段
+  // late List<three.CatmullRomCurve3> splines;
+  late List<SplineObj> splineObjs;
+  three.Vector3 tempPoint = three.Vector3();
+  // ignore: constant_identifier_names
+  static const int ARC_SEGMENTS = 200;
+
+  late three.Raycaster raycaster;
+
+  /// z参数用来判断是否取消，当它为1时，在空白地方点击时，取消attach
+  late three.Vector3 onDownPosition;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +93,10 @@ class FlutterGameState extends State<ArmPage> {
     ikCubit = BlocProvider.of<IKCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
+
+    raycaster = three.Raycaster();
+    raycaster.params["Points"]["threshold"] = 0.5;
+    splineObjs = [];
   }
 
   @override
@@ -83,17 +117,73 @@ class FlutterGameState extends State<ArmPage> {
   Widget build(BuildContext context) {
     final bool isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
 
-    return isCurrent
-        ? FocusScope(
-            // 当不可见时禁止请求焦点，进一步避免抢焦点
-            canRequestFocus: true,
-            child: threeJs.build(),
-          )
-        : FocusScope(
-            // 当不可见时禁止请求焦点，进一步避免抢焦点
-            canRequestFocus: false,
-            child: threeJs.build(),
-          );
+    return Listener(
+      // 对应 Web 的 mousemove
+      onPointerMove: (PointerMoveEvent event) {},
+      onPointerDown: (event) {
+        // 1. 获取 3D 画布所在的 RenderBox
+        final RenderBox? box = context.findRenderObject() as RenderBox?;
+        if (box == null) return;
+
+        // 2. 将“全局点击位置”转换为“相对于 3D 画布内部”的本地坐标
+        // 这样无论上方有 AppBar 还是状态栏，localOffset.dy 都会从画布顶端 0 开始算
+        final localOffset = box.globalToLocal(event.position);
+
+        // 3. 计算 NDC，确保使用的是 box 自身的尺寸
+        double x = (localOffset.dx / box.size.width) * 2 - 1;
+        double y = -(localOffset.dy / box.size.height) * 2 + 1;
+
+        onDownPosition = three.Vector3(x, y, 0);
+
+        print("修正后的 NDC: $x, $y");
+
+        // 2. 更新射线
+        // raycaster.setFromCamera(three.Vector2(x, y), threeJs.camera);
+        raycaster.setFromCamera(three.Vector2(x, y), threeJs.camera);
+
+        // 3. 判定命中
+        final intersects = raycaster.intersectObjects(nodesHelpers, false);
+        print("检测列表长度: ${nodesHelpers.length}");
+        if (intersects.isNotEmpty) {
+          // 命中节点，切换到移动模式
+          nodeCtrol.attach(intersects[0].object);
+          onDownPosition.z = 1;
+        }
+      },
+      onPointerUp: (event) {
+        // 1. 获取 3D 画布所在的 RenderBox
+        final RenderBox? box = context.findRenderObject() as RenderBox?;
+        if (box == null) return;
+
+        // 2. 将“全局点击位置”转换为“相对于 3D 画布内部”的本地坐标
+        // 这样无论上方有 AppBar 还是状态栏，localOffset.dy 都会从画布顶端 0 开始算
+        final localOffset = box.globalToLocal(event.position);
+
+        double x = (localOffset.dx / box.size.width) * 2 - 1;
+        double y = -(localOffset.dy / box.size.height) * 2 + 1;
+        print(
+          "鼠标抬起: ${onDownPosition.x - x < 0.001} --- ${onDownPosition.y - y < 0.001}",
+        );
+
+        if (onDownPosition.x - x < 0.001 &&
+            onDownPosition.y - y < 0.001 &&
+            onDownPosition.z == 0) {
+          nodeCtrol.detach();
+        }
+      },
+
+      child: isCurrent
+          ? FocusScope(
+              // 当不可见时禁止请求焦点，进一步避免抢焦点
+              canRequestFocus: true,
+              child: threeJs.build(),
+            )
+          : FocusScope(
+              // 当不可见时禁止请求焦点，进一步避免抢焦点
+              canRequestFocus: false,
+              child: threeJs.build(),
+            ),
+    );
   }
 
   Map<LogicalKeyboardKey, bool> keyStates = {
@@ -110,10 +200,10 @@ class FlutterGameState extends State<ArmPage> {
 
   Future<void> setup() async {
     threeJs.camera = three.PerspectiveCamera(
-      45,
+      70,
       threeJs.width / threeJs.height,
-      1,
-      2200,
+      0.1,
+      30,
     );
     threeJs.camera.position.setValues(2.5, 0.6, 0);
     threeJs.scene = three.Scene();
@@ -145,16 +235,16 @@ class FlutterGameState extends State<ArmPage> {
     final sunPosition = three.Vector3(100, 10, -50);
     uniforms['sunPosition']['value'] = sunPosition;
 
-    final geometry = three.PlaneGeometry(100, 100); // 创建一个 1000x1000 的平面
-    final options = WaterOptions(
-      color: 0x00BFFF, // 水的颜色
-      scale: 4.0, // 水面波纹的缩放比例
-      flowSpeed: 0.02, // 水流速度
-      reflectivity: 0.5, // 反射率
-    );
-    final water = Water(geometry, options);
-    water.rotation.x = -math.pi / 2; // 将水面旋转为水平面
-    water.position.y = -0.5;
+    // final geometry = three.PlaneGeometry(100, 100); // 创建一个 1000x1000 的平面
+    // final options = WaterOptions(
+    //   color: 0x00BFFF, // 水的颜色
+    //   scale: 4.0, // 水面波纹的缩放比例
+    //   flowSpeed: 0.02, // 水流速度
+    //   reflectivity: 0.5, // 反射率
+    // );
+    // final water = Water(geometry, options);
+    // water.rotation.x = -math.pi / 2; // 将水面旋转为水平面
+    // water.position.y = -0.5;
     // threeJs.scene.add(water);
 
     final directionalLight = three.DirectionalLight(0xffffff, 0.5);
@@ -170,9 +260,9 @@ class FlutterGameState extends State<ArmPage> {
 
     // threeJs.scene.add(pointLight);
     threeJs.scene.add(ambientLight);
-    threeJs.scene.add(threeJs.camera);
+    // threeJs.scene.add(threeJs.camera);
 
-    threeJs.camera.lookAt(threeJs.scene.position);
+    // threeJs.camera.lookAt(threeJs.scene.position);
 
     final orbitControle = three.OrbitControls(
       threeJs.camera,
@@ -234,6 +324,11 @@ class FlutterGameState extends State<ArmPage> {
 
     // 类似web的requestAniamtionFrame
     threeJs.addAnimationEvent((dt) {
+      // splineObjs.curve
+      // t = dt.time / time .clamp(0.0, 1.0);
+      // splineObjs[0].curve.getPoint(0.1, tempPoint);
+      // 计算关节逆解角度
+
       //这里添加动画效果
       if (motionsCubit.state.status == MotionStatus.goToZero) {
         if (rt.elapsedTime == 0.0) {
@@ -583,74 +678,205 @@ class FlutterGameState extends State<ArmPage> {
     //   print('Renderer initialization attempt completed.');
     // }
 
-    // 一个小长方体，用来展示逆解姿态
-    var ikCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
-    var ikMaterial = three.MeshBasicMaterial({
-      three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
-      three.MaterialProperty.transparent: true, // 必须开启透明混合
-      three.MaterialProperty.opacity: 0.5, // 设置透明度，范围从 0.0 到 1.0
+    // // 一个小长方体，用来展示逆解姿态
+    // var ikCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
+    // var ikMaterial = three.MeshBasicMaterial({
+    //   three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
+    //   three.MaterialProperty.transparent: true, // 必须开启透明混合
+    //   three.MaterialProperty.opacity: 0.5, // 设置透明度，范围从 0.0 到 1.0
+    // });
+    // var ikCube = three.Mesh(ikCuboid, ikMaterial);
+    // final ikPoseCtrl = three.Object3D();
+    // ikPoseCtrl.position = three.Vector3(0.2, 0.2, 0.2);
+    // ikPoseCtrl.add(ikCube);
+    // ikPoseCtrl.add(AxesHelper(0.2));
+
+    // // 移动控制
+    // final control = TransformControls(threeJs.camera, threeJs.globalKey);
+    // control.attach(ikPoseCtrl);
+    // control.mode = ikCubit.state.dragPose.mode;
+    // control.size = 0.5;
+
+    // // threeJs.scene.add(control);
+    // // threeJs.scene.add(control);
+    // // zeroWrapper.add(ikPoseCtrl);
+
+    // vector_math.Matrix4 threeMat2mat(three.Matrix4 mat) {
+    //   return vector_math.Matrix4.fromFloat64List(
+    //     Float64List.fromList(ikPoseCtrl.matrix.storage),
+    //   );
+    // }
+
+    // control.addEventListener('change', (event) {
+    //   threeJs.render();
+
+    //   /// 获取逆解集合
+    //   List<List<double>> allSolutions = RobotKm.ik(
+    //     threeMat2mat(ikPoseCtrl.matrix),
+    //   );
+
+    //   /// 获取最优解
+    //   List<double> predegs = ikCubit.state.preJointsDeg
+    //       .map((ele) => ele * math.pi / 180)
+    //       .toList();
+    //   List<double> goodOneSol = RobotKm.getBestSolution(allSolutions, predegs);
+    //   if (goodOneSol.isNotEmpty) {
+    //     print('好解：$goodOneSol');
+    //     jointsCubit.setJoints(
+    //       JointsState(
+    //         joint1: goodOneSol[0],
+    //         joint2: -goodOneSol[1],
+    //         joint3: -goodOneSol[2],
+    //         joint4: goodOneSol[3],
+    //         joint5: -goodOneSol[4],
+    //         joint6: goodOneSol[5],
+    //       ),
+    //     );
+    //     ikCubit.setPreJointsDeg(goodOneSol);
+    //   } else {
+    //     ikCubit.setPreJointsDeg([]);
+    //   }
+    // });
+    // control.addEventListener('dragging-changed', (event) {
+    //   orbitControle.enabled = !event.value;
+    // });
+
+    /// 添加平面
+    // final planeGeo = three.PlaneGeometry(2, 2);
+    // planeGeo.rotateX(-math.pi / 2);
+    // final planeMat = three.MeshBasicMaterial({
+    //   three.MaterialProperty.color: 0xaaaaaa, // 灰色地面
+    //   three.MaterialProperty.transparent: true, // 必须开启！否则不生效
+    //   three.MaterialProperty.opacity: 0.5, // 半透明
+    //   three.MaterialProperty.depthWrite: false,
+    // });
+    // final plane = three.Mesh(planeGeo, planeMat);
+    // plane.position.y = -0.1; // 高度
+    // plane.receiveShadow = true;
+    // threeJs.scene.add(plane);
+    // 圆形平面
+    final planeGeo = three.CircleGeometry(radius: 0.8, segments: 64);
+    planeGeo.rotateX(-math.pi / 2);
+    final planeMat = three.MeshBasicMaterial({
+      three.MaterialProperty.color: 0xaaaaaa, // 灰色地面
+      three.MaterialProperty.transparent: true, // 必须开启！否则不生效
+      three.MaterialProperty.opacity: 0.5, // 半透明
+      three.MaterialProperty.depthWrite: false,
     });
-    var ikCube = three.Mesh(ikCuboid, ikMaterial);
-    final ikPoseCtrl = three.Object3D();
-    ikPoseCtrl.position = three.Vector3(0.2, 0.2, 0.2);
-    ikPoseCtrl.add(ikCube);
-    ikPoseCtrl.add(AxesHelper(0.2));
+    final plane = three.Mesh(planeGeo, planeMat);
+    plane.position.y = -0.1; // 高度
+    plane.receiveShadow = true;
+    threeJs.scene.add(plane);
 
-    // 移动控制
-    final control = TransformControls(threeJs.camera, threeJs.globalKey);
-    control.attach(ikPoseCtrl);
-    control.mode = ikCubit.state.dragPose.mode;
-    control.size = 0.5;
+    /// 添加网格
+    // final grid = GridHelper(1.6, 16, 0xfff, 0xfff);
+    // grid.position.y = -0.09;
+    // // GridHelper 自带材质，必须这样设置
+    // (grid.material as three.Material).transparent = true;
+    // (grid.material as three.Material).opacity = 0.25;
+    // threeJs.scene.add(grid);
 
-    // threeJs.scene.add(control);
-    threeJs.scene.add(control);
-    zeroWrapper.add(ikPoseCtrl);
+    final polarGrid = PolarGridHelper(
+      0.8,
+      18,
+      36,
+      64,
+      three.Color.fromHex64(0x444444),
+      three.Color.fromHex64(0x888888),
+    );
+    polarGrid.position.y = -0.1 + 0.000001;
+    // 如果你想让它平铺在地板上（XZ平面）
+    polarGrid.rotation.x = 0; // 默认就是平铺的，除非你的坐标系是 Y-up 且需要翻转
+    // polarGrid
+    threeJs.scene.add(polarGrid);
 
-    vector_math.Matrix4 threeMat2mat(three.Matrix4 mat) {
-      return vector_math.Matrix4.fromFloat64List(
-        Float64List.fromList(ikPoseCtrl.matrix.storage),
+    // final splineHelperObjects = [];
+    // three.Vector3 point = three.Vector3();
+
+    // /// 射线
+    // final raycaster = three.Raycaster();
+    // final pointer = three.Vector2();
+    // final onUpPostion = three.Vector2();
+    // final onDownPosition = three.Vector2();
+
+    // final nodeTransformContrel;
+
+    // const ARC_SRGMENT = 0.2;
+    // final splines = {};
+
+    nodeCtrol = TransformControls(threeJs.camera, threeJs.globalKey);
+    nodeCtrol.size = 0.4;
+    nodeCtrol.addEventListener("change", (event) {});
+    nodeCtrol.addEventListener("dragging-changed", (event) {
+      orbitControle.enabled = !event.value;
+
+      const double maxRange = 0.7; // 机械臂最大臂展
+      final center = three.Vector3(0, 0, 0);
+      final obj = nodeCtrol.object;
+      if (obj == null) return;
+
+      double distance = obj.position.distanceTo(center);
+
+      if (distance > maxRange) {
+        // 计算方向向量并缩放到最大半径
+        // 在很多版本的 three_js Dart 封装中，multiplyScalar 被重命名为 scale。
+        obj.position.sub(center).normalize().scale(maxRange).add(center);
+      }
+      updateSplines(splineObjs, tempPoint);
+    });
+    threeJs.scene.add(nodeCtrol);
+
+    nodeCtrol.addEventListener("objectChange", (event) {
+      // updateSplineOutline();
+      // updateSplines(splineObjs, tempPoint);
+    });
+
+    for (int i = 0; i < nodesSpline.length; i++) {
+      addSplineObject(
+        position: nodesSpline[i],
+        mountNode: zeroWrapper,
+        helpers: nodesHelpers,
       );
+      print("--nodesHelpers: $nodesHelpers");
     }
 
-    control.addEventListener('change', (event) {
-      threeJs.render();
+    initSpLines(nodesSpline, zeroWrapper);
+    updateSplines(splineObjs, tempPoint);
 
-      /// 获取逆解集合
-      List<List<double>> allSolutions = RobotKm.ik(
-        threeMat2mat(ikPoseCtrl.matrix),
-      );
+    // nodesHelpers.
+    // nodeCtrol.attach(nodesHelpers[0]);
 
-      /// 获取最优解
-      List<double> predegs = ikCubit.state.preJointsDeg
-          .map((ele) => ele * math.pi / 180)
-          .toList();
-      List<double> goodOneSol = RobotKm.getBestSolution(allSolutions, predegs);
-      if (goodOneSol.isNotEmpty) {
-        print('好解：$goodOneSol');
-        jointsCubit.setJoints(
-          JointsState(
-            joint1: goodOneSol[0],
-            joint2: -goodOneSol[1],
-            joint3: -goodOneSol[2],
-            joint4: goodOneSol[3],
-            joint5: -goodOneSol[4],
-            joint6: goodOneSol[5],
-          ),
-        );
-        ikCubit.setPreJointsDeg(goodOneSol);
-      } else {
-        ikCubit.setPreJointsDeg([]);
-      }
-    });
-    control.addEventListener('dragging-changed', (event) {
-      orbitControle.enabled = !event.value;
-    });
+    // 2. 创建曲线
+    // 注意：即使只有两个点，也必须放在 List 中
+    // final curve = three.CatmullRomCurve3. ([nodesSpline[0], nodesSpline[2]]);
+    // final curve = three.CatmullRomCurve3(
+    //   points: [
+    //     three.Vector3(-10, 0, 10),
+    //     three.Vector3(-5, 5, 5),
+    //     three.Vector3(0, 0, 0),
+    //     three.Vector3(5, -5, 5),
+    //     three.Vector3(10, 0, 10),
+    //   ],
+    // );
+    // final curve = three.CatmullRomCurve3(points: nodesSpline);
+    // // 3. 获取插值点用于显示 (例如 20 个点)
+    // var points = curve.getPoints(20);
+
+    // // 4. 创建几何体并显示
+    // final geometry3 = three.BufferGeometry().setFromPoints(points);
+    // final material3 = three.LineBasicMaterial({
+    //   three.MaterialProperty.color: 0xff0000,
+    // });
+    // final line = three.Line(geometry3, material3);
+    // // threeJs.scene.add(line);
+    // zeroWrapper.add(line);
 
     threeJs.renderer?.autoClear = false;
 
     void render() {
       threeJs.addAnimationEvent((dt) {
-        control.mode = ikCubit.state.dragPose.mode;
+        nodeCtrol.mode = ikCubit.state.dragPose.mode;
+        // control.mode = ikCubit.state.dragPose.mode;
 
         zeroWrapper.add(zero?.scene);
         zeroWrapper.add(oneWrapper);
@@ -682,6 +908,135 @@ class FlutterGameState extends State<ArmPage> {
     }
 
     render();
+  }
+
+  // spline功能 添加节点对象
+  three.Object3D addSplineObject({
+    three.Vector3? position,
+    three.Object3D? mountNode,
+    List? helpers,
+  }) {
+    // final nodeGometry = three.BoxGeometry(0.03, 0.03, 0.03);
+    final nodeGometry = three.BoxGeometry(0.05, 0.05, 0.05);
+    // final nodeGometry = three.BoxGeometry(0.1, 0.1, 0.1);
+    final material = three.MeshLambertMaterial({
+      three.MaterialProperty.color: three.Color.fromHex64(0xfa00f1),
+    });
+
+    three.Object3D object = three.Mesh(nodeGometry, material);
+    if (position != null) {
+      object.position = position;
+    } else {
+      object.position.x = math.Random().nextDouble() * 1.6 - 0.9;
+      object.position.y = math.Random().nextDouble() * 1.6 - 0.9;
+      object.position.z = math.Random().nextDouble() * 0.8;
+    }
+
+    object.castShadow = true;
+    object.receiveShadow = true;
+
+    object.add(AxesHelper(0.1));
+
+    if (mountNode != null) {
+      mountNode.add(object);
+    }
+    // threeJs.scene.add(object);
+    if (helpers != null) {
+      helpers.add(object);
+    }
+
+    return object;
+  }
+
+  /// 将spline对象添加列表中，以便渲染和更新
+  void initSpLines(List<three.Vector3> nodesSpline, three.Object3D wrapper) {
+    three.BufferGeometry geometry = three.BufferGeometry();
+    geometry.setAttribute(
+      three.Attribute.position,
+      // three.Float32BufferAttribute(three.Float32Array(ARC_SEGMENTS * 3), 3),
+      three.Float32BufferAttribute(three.Float32Array(ARC_SEGMENTS * 3), 3),
+    );
+
+    three.CatmullRomCurve3 curve = three.CatmullRomCurve3(points: nodesSpline);
+    curve.curveType = 'catmullrom';
+    final line = three.Line(
+      geometry.clone(),
+      three.LineBasicMaterial({
+        three.MaterialProperty.color: 0xff0000,
+        three.MaterialProperty.opacity: 0.35,
+      }),
+    );
+    line.castShadow = true;
+    splineObjs.add(SplineObj(curve: curve, line: line));
+    // wrapper.add(splineObjs[0].line);
+
+    three.CatmullRomCurve3 curvecCntripetal = three.CatmullRomCurve3(
+      points: nodesSpline,
+    );
+    curvecCntripetal.curveType = 'centripetal';
+    final lineCentripetal = three.Line(
+      geometry.clone(),
+      three.LineBasicMaterial({
+        three.MaterialProperty.color: 0x00ff00,
+        three.MaterialProperty.opacity: 0.35,
+      }),
+    );
+    lineCentripetal.castShadow = true;
+    splineObjs.add(SplineObj(curve: curvecCntripetal, line: lineCentripetal));
+    // wrapper.add(splineObjs[1].line);
+
+    three.CatmullRomCurve3 curveChordal = three.CatmullRomCurve3(
+      points: nodesSpline,
+    );
+    curvecCntripetal.curveType = 'chordal';
+    final lineChordal = three.Line(
+      geometry.clone(),
+      three.LineBasicMaterial({
+        three.MaterialProperty.color: 0x0000ff,
+        three.MaterialProperty.opacity: 0.35,
+      }),
+    );
+    lineChordal.castShadow = true;
+    splineObjs.add(SplineObj(curve: curveChordal, line: lineChordal));
+    // wrapper.add(splineObjs[2].line);
+
+    for (int i = 0; i < splineObjs.length; i++) {
+      wrapper.add(splineObjs[i].line);
+    }
+
+    /// 可运行线段
+    // final curve = three.CatmullRomCurve3(points: nodesSpline);
+    // List<three.Vector?> points = curve.getPoints(20);
+
+    // // 4. 创建几何体并显示
+    // final geometry3 = three.BufferGeometry().setFromPoints(points);
+    // final material3 = three.LineBasicMaterial({
+    //   three.MaterialProperty.color: 0xff0000,
+    // });
+    // final line = three.Line(geometry3, material3);
+    // wrapper.add(line);
+  }
+
+  /// 更新线段
+  void updateSplines(List<SplineObj> splineObjs, three.Vector3 tempPoint) {
+    for (int i = 0; i < splineObjs.length; i++) {
+      final position = splineObjs[i].line.geometry!.attributes["position"];
+      for (int j = 0; j < ARC_SEGMENTS; j++) {
+        double t = j / (ARC_SEGMENTS - 1);
+        splineObjs[i].curve.getPoint(t, tempPoint);
+        position.setXYZ(j, tempPoint.x, tempPoint.y, tempPoint.z);
+      }
+      // splineObjs[0].curve.getPoint(0.1, tempPoint);
+      // print('---tempPoint: $tempPoint, t : 0.1');
+      position.needsUpdate = true;
+    }
+
+    // final position = splineObjs[0].line.geometry!.attributes["position"];
+    // for (int i = 0; i < ARC_SEGMENTS; i++) {
+    //   double t = i / (ARC_SEGMENTS - 1);
+    //   splineObjs[0].curve.getPoint(t, tempPoint);
+    //   position.setXYZ(i, tempPoint.x, tempPoint.y, tempPoint.z);
+    // }
   }
 
   void initMesh() {}
