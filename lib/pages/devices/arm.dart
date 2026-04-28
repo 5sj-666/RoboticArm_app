@@ -1,6 +1,7 @@
 // import 'package:auto_route/auto_route.dart';
 
 import 'package:flutter/material.dart';
+import 'package:robotic_arm_app/cubit/toolPath_cubit.dart';
 import 'package:robotic_arm_app/types/motions.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -24,9 +25,9 @@ import 'package:three_js_transform_controls/three_js_transform_controls.dart';
 // import 'package:vector_math/vector_math_64.dart';
 // import 'package:robotic_arm_app/utils/km_simple.dart';
 
-// import 'package:robotic_arm_app/utils/km_simple_gemini.dart';
-// import 'package:vector_math/vector_math_64.dart' as vector_math;
-// import 'dart:typed_data';
+import 'package:robotic_arm_app/utils/km_simple_gemini.dart';
+import 'package:vector_math/vector_math_64.dart' as vector_math;
+import 'dart:typed_data';
 
 class SplineObj {
   final three.CatmullRomCurve3 curve;
@@ -49,12 +50,14 @@ class FlutterGameState extends State<ArmPage> {
   late BleCubit bleCubit;
   late MotorLogCubit motorLogCubit;
   late IKCubit ikCubit;
+  late ToolPathCubit toolPathCubit;
 
   late RunTimeWorkSpace rt;
   // '准备中'阶段需要记录初始位置，以便计算回到第一帧位置时的过渡值计算
   late List preparingInitPosition;
 
   // 路径设置功能的变量（spline）
+  late three.Object3D zeroWrapper;
   List<three.Object3D> nodesHelpers = [];
   List<three.Vector3> nodesSpline = [
     three.Vector3(0.2, 0.2, 0.2),
@@ -91,6 +94,7 @@ class FlutterGameState extends State<ArmPage> {
     motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
     bleCubit = BlocProvider.of<BleCubit>(context);
     ikCubit = BlocProvider.of<IKCubit>(context);
+    toolPathCubit = BlocProvider.of<ToolPathCubit>(context);
 
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
 
@@ -103,6 +107,28 @@ class FlutterGameState extends State<ArmPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
+
+    if (motionsCubit.state.currentMotion?.nodes != null) {
+      // 发生变化时，更改objects的位置和姿态
+      List<List<double>> nodes = motionsCubit.state.currentMotion?.nodes ?? [];
+      Iterable<List<double>> newNodes = nodes.map(
+        (innerList) => List<double>.from(innerList),
+      );
+      toolPathCubit.setState(null, newNodes.toList(), null);
+
+      ///  赋值姿态 并 更新线段（CatmullRomCurve3）
+      for (int i = 0; i < nodes.length; i++) {
+        final temp = three.Matrix4().copyFromArray(nodes[i]);
+        temp.decompose(
+          nodesHelpers[i].position,
+          nodesHelpers[i].quaternion,
+          nodesHelpers[i].scale,
+        );
+        nodesHelpers[i].updateMatrix();
+        nodesSpline[i] = three.Vector3.copy(nodesHelpers[i].position);
+      }
+      updateSplines(splineObjs, tempPoint);
+    }
   }
 
   @override
@@ -121,6 +147,10 @@ class FlutterGameState extends State<ArmPage> {
       // 对应 Web 的 mousemove
       onPointerMove: (PointerMoveEvent event) {},
       onPointerDown: (event) {
+        // 非idle状态无法拖动，后续需要改成非编辑路径状态无法拖动
+        // if (motionsCubit.state.status != MotionStatus.idle) {
+        //   return;
+        // }
         // 1. 获取 3D 画布所在的 RenderBox
         final RenderBox? box = context.findRenderObject() as RenderBox?;
         if (box == null) return;
@@ -143,7 +173,9 @@ class FlutterGameState extends State<ArmPage> {
 
         // 3. 判定命中
         final intersects = raycaster.intersectObjects(nodesHelpers, false);
-        print("检测列表长度: ${nodesHelpers.length}");
+        print("检测列表长度: ${nodesHelpers.length}, ");
+        // if (intersects.isNotEmpty &&
+        //     motionsCubit.state.status == MotionStatus.idle) {
         if (intersects.isNotEmpty) {
           // 命中节点，切换到移动模式
           nodeCtrol.attach(intersects[0].object);
@@ -270,7 +302,7 @@ class FlutterGameState extends State<ArmPage> {
     );
     orbitControle.update();
 
-    var zeroWrapper = three.Object3D();
+    zeroWrapper = three.Object3D();
     zeroWrapper.position.y = 0;
     threeJs.scene.add(zeroWrapper);
     var zero = await addGltfAsset('zero.glb', 'zero');
@@ -371,17 +403,18 @@ class FlutterGameState extends State<ArmPage> {
         } else {
           for (int j = 0; j < 6; j++) {
             double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
-            jointsCubit.setSingleJoint(
-              'joint${j + 1}',
-              deg.clamp(-145.0, 145.0),
-            );
-            // 第二个关节
-            if (j == 1) {
-              jointsCubit.setSingleJoint(
-                'joint${j + 1}',
-                deg.clamp(-90.0, 90.0),
-              );
-            }
+            jointsCubit.setSingleJoint('joint${j + 1}', deg);
+            // jointsCubit.setSingleJoint(
+            //   'joint${j + 1}',
+            //   deg.clamp(-145.0, 145.0),
+            // );
+            // // 第二个关节
+            // if (j == 1) {
+            //   jointsCubit.setSingleJoint(
+            //     'joint${j + 1}',
+            //     deg.clamp(-90.0, 90.0),
+            //   );
+            // }
           }
         }
 
@@ -393,7 +426,43 @@ class FlutterGameState extends State<ArmPage> {
           /// 从ai 应用动作 跳转到此页面不会出发生命周期，所以在此手动初始化。需要优化:将其放到生命周期里
           rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
 
-          rt.curKeyframe = rt.keyframeList[0];
+          ///---------------------
+          /// 关键帧时末端路径时候。将第一帧的位置设置为当前帧
+          /// 1. 先求出第一点位置的关节角度逆解
+          if (motionsCubit.state.currentMotion?.nodes != null) {
+            List<List<double>> allSolutions = RobotKm.ik(
+              threeMat2mat(nodesHelpers[0].matrix),
+            );
+            // print("allSolutions");
+            for (int i = 0; i < allSolutions.length; i++) {
+              print("逆解：${allSolutions[i]}");
+            }
+            //       JointsState(
+            //         joint1: goodOneSol[0],
+            //         joint2: -goodOneSol[1],
+            //         joint3: -goodOneSol[2],
+            //         joint4: goodOneSol[3],
+            //         joint5: -goodOneSol[4],
+            //         joint6: goodOneSol[5],
+            //       ),
+            List<double> tempSol = allSolutions[0]
+                .map((item) => item * 180 / math.pi)
+                .toList();
+            tempSol[1] = -tempSol[1];
+            tempSol[2] = -tempSol[2];
+            tempSol[4] = -tempSol[4];
+
+            print("选中的解： $tempSol");
+            rt.curKeyframe = Keyframe(positions: tempSol, time: 0);
+
+            // return;
+          } else {
+            rt.curKeyframe = rt.keyframeList[0];
+          }
+
+          ///-----------------------特殊处理结束------------
+
+          // rt.curKeyframe = rt.keyframeList[0];
 
           preparingInitPosition = [
             jointsCubit.state.joint1,
@@ -403,6 +472,7 @@ class FlutterGameState extends State<ArmPage> {
             jointsCubit.state.joint5,
             jointsCubit.state.joint6,
           ];
+
           for (int i = 0; i < rt.curKeyframe!.positions.length; i++) {
             rt.deltaDeg[i] =
                 rt.curKeyframe!.positions[i] - preparingInitPosition[i];
@@ -432,17 +502,18 @@ class FlutterGameState extends State<ArmPage> {
         if (progress >= 1.0) {
           for (int j = 0; j < rt.curKeyframe!.positions.length; j++) {
             double deg = rt.deltaDeg[j] * 1 + preparingInitPosition[j];
-            jointsCubit.setSingleJoint(
-              'joint${j + 1}',
-              deg.clamp(-145.0, 145.0),
-            );
-            // 第二个关节
-            if (j == 1) {
-              jointsCubit.setSingleJoint(
-                'joint${j + 1}',
-                deg.clamp(-90.0, 90.0),
-              );
-            }
+            jointsCubit.setSingleJoint('joint${j + 1}', deg);
+            // jointsCubit.setSingleJoint(
+            //   'joint${j + 1}',
+            //   deg.clamp(-145.0, 145.0),
+            // );
+            // // 第二个关节
+            // if (j == 1) {
+            //   jointsCubit.setSingleJoint(
+            //     'joint${j + 1}',
+            //     deg.clamp(-90.0, 90.0),
+            //   );
+            // }
           }
           // 准备完成，切换到ready状态
           motionsCubit.updateStatus(MotionStatus.ready);
@@ -450,22 +521,82 @@ class FlutterGameState extends State<ArmPage> {
         } else {
           for (int j = 0; j < rt.curKeyframe!.positions.length; j++) {
             double deg = rt.deltaDeg[j] * progress + preparingInitPosition[j];
-            jointsCubit.setSingleJoint(
-              'joint${j + 1}',
-              deg.clamp(-145.0, 145.0),
-            );
-            // 第二个关节
-            if (j == 1) {
-              jointsCubit.setSingleJoint(
-                'joint${j + 1}',
-                deg.clamp(-90.0, 90.0),
-              );
-            }
+            jointsCubit.setSingleJoint('joint${j + 1}', deg);
+            // jointsCubit.setSingleJoint(
+            //   'joint${j + 1}',
+            //   deg.clamp(-145.0, 145.0),
+            // );
+            // // 第二个关节
+            // if (j == 1) {
+            //   jointsCubit.setSingleJoint(
+            //     'joint${j + 1}',
+            //     deg.clamp(-90.0, 90.0),
+            //   );
+            // }
           }
         }
       } else if (motionsCubit.state.status == MotionStatus.running) {
         // print('---运行动画${rt.len}');
         rt.elapsedTime += dt;
+
+        /// ---------------- 路径逆解动作 开始 ------------
+        if (motionsCubit.state.currentMotion?.nodes != null) {
+          /// 获取t
+          double t = (rt.elapsedTime / 5.0).clamp(0, 1);
+
+          /// 获取catCullRoom的曲线点
+          splineObjs[0].curve.getPoint(t, tempPoint);
+          print('---tempPoint: $tempPoint');
+
+          final q = getOrientationAt(
+            t,
+            nodesHelpers.map((item) => item.quaternion).toList(),
+          );
+
+          final scale = three.Vector3(1, 1, 1);
+
+          // 2. 组合成 Matrix4
+          final targetMatrix = three.Matrix4();
+          targetMatrix.compose(tempPoint, q, scale);
+
+          List<List<double>> allSolutions = RobotKm.ik(
+            threeMat2mat(targetMatrix),
+          );
+          // print("allSolutions");
+          for (int i = 0; i < allSolutions.length; i++) {
+            print("逆解：${allSolutions[i]}");
+          }
+          if (allSolutions.isEmpty) {
+            if (t >= 0.99) {
+              motionsCubit.updateStatus(MotionStatus.finished);
+              rt.elapsedTime = 0.0;
+            }
+            return;
+          }
+          List<double> tempSol = allSolutions[0]
+              .map((item) => item * 180 / math.pi)
+              .toList();
+          tempSol[1] = -tempSol[1];
+          tempSol[2] = -tempSol[2];
+          tempSol[4] = -tempSol[4];
+
+          // jointsCubit.setSingleJoint('joint${j + 1}', deg);
+
+          print("选中的解： $tempSol");
+          // rt.curKeyframe = Keyframe(positions: tempSol, time: 0);
+
+          for (int i = 0; i < tempSol.length; i++) {
+            jointsCubit.setSingleJoint('joint${i + 1}', tempSol[i]);
+          }
+
+          if (t >= 0.99) {
+            motionsCubit.updateStatus(MotionStatus.finished);
+            rt.elapsedTime = 0.0;
+          }
+          return;
+        }
+
+        /// ---------------- 路径逆解动作 结束 ------------
 
         /// 如歌当前关键帧的指针 大于 关键帧列表的最大下标值，则直接结束
         if (rt.keyframeCursor >= rt.len) {
@@ -808,6 +939,9 @@ class FlutterGameState extends State<ArmPage> {
     nodeCtrol.size = 0.4;
     nodeCtrol.addEventListener("change", (event) {});
     nodeCtrol.addEventListener("dragging-changed", (event) {
+      // if (motionsCubit.state.status != MotionStatus.idle) {
+      //   return;
+      // }
       orbitControle.enabled = !event.value;
 
       const double maxRange = 0.7; // 机械臂最大臂展
@@ -823,6 +957,7 @@ class FlutterGameState extends State<ArmPage> {
         obj.position.sub(center).normalize().scale(maxRange).add(center);
       }
       updateSplines(splineObjs, tempPoint);
+      setCubitPose();
     });
     threeJs.scene.add(nodeCtrol);
 
@@ -842,6 +977,7 @@ class FlutterGameState extends State<ArmPage> {
 
     initSpLines(nodesSpline, zeroWrapper);
     updateSplines(splineObjs, tempPoint);
+    setCubitPose();
 
     // nodesHelpers.
     // nodeCtrol.attach(nodesHelpers[0]);
@@ -1084,6 +1220,18 @@ class FlutterGameState extends State<ArmPage> {
       gltf.scene.rotateY(math.pi / 2);
     }
   }
+
+  void setCubitPose() {
+    // toolPathCubit.setState( nodesSpline, );
+    List<List<double>> tempPoseList = [];
+    for (int i = 0; i < nodesHelpers.length; i++) {
+      print("nodesHelpers matrix-- : ${nodesHelpers[i].matrix.storage}");
+      tempPoseList.add(nodesHelpers[i].matrix.storage.toList());
+    }
+    // tempPoseList;
+
+    toolPathCubit.setState(nodesSpline, tempPoseList, null);
+  }
 }
 
 class BleMsgPositions {
@@ -1205,4 +1353,32 @@ void combinPostion(List<List<double>> positionArr, BleCubit bleCubit) {
 
   // /// 返回结果帧
   // // return result;
+}
+
+vector_math.Matrix4 threeMat2mat(three.Matrix4 mat) {
+  return vector_math.Matrix4.fromFloat64List(
+    // Float64List.fromList(ikPoseCtrl.matrix.storage),
+    Float64List.fromList(mat.storage),
+  );
+}
+
+/// 姿态差值
+three.Quaternion getOrientationAt(
+  double t,
+  List<three.Quaternion> nodeQuaternions,
+) {
+  // t 是 0.0 到 1.0 之间的值
+  // 1. 确定当前时刻处于哪两个节点之间
+  int numSegments = nodeQuaternions.length - 1;
+  double segmentT = t * numSegments;
+  int index = segmentT.floor(); // 起点索引
+  double localT = segmentT - index; // 段内百分比 (0~1)
+
+  if (index >= numSegments) return nodeQuaternions.last;
+
+  // 2. 执行 Slerp（球面线性插值）
+  final q1 = nodeQuaternions[index];
+  final q2 = nodeQuaternions[index + 1];
+
+  return q1.clone().slerp(q2, localT);
 }

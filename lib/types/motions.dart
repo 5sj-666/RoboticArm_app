@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+// import 'package:three_js/three_js.dart' as three;
 part 'motions.g.dart';
 
 Map<String, int> jointIdMap = {
@@ -47,9 +48,12 @@ class Motion {
   List<String>? imgs; // 图片地址列表
   String? coverImg; //封面地址
   List<Keyframe> keyframes; // 关键帧列表
+  // 存的是three.Matrix.storage 使用的时候three.Matrix.fromNativeArray(nodes[i])
+  List<List<double>>? nodes;
   String? createTime;
   String? author;
-  int? faverite;
+  int? favorite;
+  String? timingFunc; // 在末端路径的情况的下，用到这个缓动函数
 
   Motion({
     required this.id,
@@ -59,8 +63,10 @@ class Motion {
     this.imgs,
     this.coverImg,
     required this.keyframes,
+    this.nodes,
     this.author,
-    this.faverite,
+    this.favorite,
+    this.timingFunc,
   });
 
   Map<String, dynamic> toJson() => _$MotionToJson(this);

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+// import 'package:flutter/rendering.dart';
 import 'package:robotic_arm_app/utils/motorCmd.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'dart:convert';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
+import 'package:robotic_arm_app/cubit/toolPath_cubit.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
@@ -16,6 +18,9 @@ import 'package:robotic_arm_app/components/MotionStatusBtn.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_collapse.dart';
 import 'package:robotic_arm_app/pages/devices/sliding_panel.dart';
 import 'package:robotic_arm_app/cubit/keyframe_cubit.dart';
+import 'package:three_js/three_js.dart' as three;
+import 'package:robotic_arm_app/components/Bezier/Dialog.dart';
+import 'package:robotic_arm_app/components/Bezier/Svg.dart';
 
 class DeviceInformationPage extends StatefulWidget {
   const DeviceInformationPage({super.key});
@@ -30,6 +35,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
   late MotionsCubit motionsCubit;
   late BleCubit bleCubit;
   late MotorLogCubit motorLogCubit;
+  late ToolPathCubit toolPathCubit;
 
   @override
   void initState() {
@@ -38,6 +44,7 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
     bleCubit = BlocProvider.of<BleCubit>(context);
     bleCubit.init();
     motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
+    toolPathCubit = BlocProvider.of<ToolPathCubit>(context);
   }
 
   @override
@@ -150,6 +157,30 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
+                        FilledButton(
+                          onPressed: () {
+                            print('保存末端运行路径');
+                            saveToolPath(
+                              context: context,
+                              // nodes: toolPathCubit.state.tempNodes,
+                              toolPathCubit: toolPathCubit,
+                              motionsCubit: motionsCubit,
+                            );
+                            // saveDialog(
+                            //   context: context,
+                            //   jointsCubit: jointsCubit,
+                            // );
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll<Color>(
+                              Colors.blue.shade300,
+                            ),
+                          ),
+                          child: const Text(
+                            '保存路径',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ],
                     ),
                   if (motionsCubit.state.status == MotionStatus.idle ||
@@ -226,6 +257,14 @@ class _deviceInformationPage extends State<DeviceInformationPage> {
                         ),
                       ],
                     ),
+
+                  // ElevatedButton(
+                  //   onPressed: () {
+                  //     print('设计路径');
+                  //     context.router.push(NamedRoute('DesignToolPathRoute'));
+                  //   },
+                  //   child: Text('设计路径'),
+                  // ),
                   // if (motionsCubit.state.status != MotionStatus.idle &&
                   //     motionsCubit.state.status != MotionStatus.goToZero)
                   if (motionsCubit.state.currentMotion != null)
@@ -306,6 +345,166 @@ Future<void> saveDialog({
               if (context.mounted) {
                 Navigator.of(context).pop();
               }
+            },
+            child: Text('确定'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> saveToolPath({
+  required BuildContext context,
+  // required JointsCubit jointsCubit,
+  // required List<three.Vector3> nodes,
+  required ToolPathCubit toolPathCubit,
+  required MotionsCubit motionsCubit,
+}) async {
+  // final _keyframeNameCtrl = TextEditingController();
+  final nodes = toolPathCubit.state.tempNodes;
+  final timingFunc = toolPathCubit.state.timingFunc;
+
+  print("拖动节点： $nodes");
+
+  /// 对节点的值
+  String getPositionString(three.Vector3 v) {
+    print("x11: ${double.parse(v.x.toStringAsFixed(4))}");
+    return "{x: ${double.parse(v.x.toStringAsFixed(4))}, y: ${double.parse(v.y.toStringAsFixed(4))}, z: ${double.parse(v.z.toStringAsFixed(4))}}";
+  }
+
+  // final _tempNodes = nodes.map((item) => setPrecision4(item)).toList();
+
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      final _motionNameCtrl = TextEditingController();
+      return AlertDialog(
+        title: Text('保存末端路径', style: TextStyle(fontSize: 16)),
+        // content: TextField(controller: _keyframeNameCtrl, autofocus: true),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width / 5 * 4,
+          height: 180,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text("名称: "),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width / 5 * 2,
+                    child: TextField(
+                      controller: _motionNameCtrl,
+                      autofocus: true,
+                    ),
+                  ),
+                  // TextField(controller: _motionNameCtrl, autofocus: true),
+                ],
+              ),
+              SizedBox(
+                height: 80,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (int i = 0; i < nodes.length; i++)
+                      Text("$i : ${getPositionString(nodes[i])}"),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  Text("贝塞尔曲线: "),
+                  InkWell(
+                    onTap: () async {
+                      final dynamic customTimingFunc = await showDialog(
+                        context: context,
+                        builder: (context) => SetBezier(
+                          // initTimingFunc: item.timingFunction ?? 'linear',
+                          // initTimingFunc: 'linear',
+                          initTimingFunc: timingFunc,
+                        ),
+                      );
+                      if (customTimingFunc != null) {
+                        // item.timingFunction = customTimingFunc;
+                        toolPathCubit.setTimingFunc(customTimingFunc);
+                        print(
+                          '---更改末端路径timingFunc: ${toolPathCubit.state.timingFunc}',
+                        );
+                        // try {
+                        //   // updateKf(item, "changeTimingFunc");
+                        // } catch (error) {
+                        //   print(error);
+                        // }
+                      }
+                    },
+                    child: BlocBuilder<ToolPathCubit, ToolPathState>(
+                      builder: (context, toolPathState) {
+                        return SvgCubicBezier(
+                          timingFunc: toolPathState.timingFunc,
+                          bg: Colors.white70,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              /// 构造动作数据，并保存在本地
+              final saveName = _motionNameCtrl.text;
+              // print("saveName: --$saveName");
+              
+              List<List<double>> tempPoses = toolPathCubit.state.tempPoses;
+
+              final tempMotion = Motion(
+                id: '${DateTime.now()}',
+                name: saveName,
+                createTime: DateTime.now().millisecondsSinceEpoch.toString(),
+                description: '',
+                keyframes: [],
+                nodes: tempPoses,
+                timingFunc: toolPathCubit.state.timingFunc,
+              );
+
+              late SnackBar snackBar;
+              // 存储在sharedPreferences
+              try {
+                await SharedPrefsStorage.save(
+                  key: 'motion_$saveName',
+                  jsonValue: json.encode(tempMotion.toJson()),
+                );
+
+                // 创建 SnackBar
+                snackBar = SnackBar(
+                  content: const Text("保存动作成功"), // 提示文本
+                  duration: const Duration(seconds: 2), // 显示时长（默认 4 秒）
+                  backgroundColor: Colors.green, // 背景色
+                );
+              } catch (err) {
+                print('动作（路径）保存错误$err');
+              }
+
+              if (context.mounted) {
+                motionsCubit.init();
+                // motionsCubit.init();
+                // 显示 SnackBar（需通过 ScaffoldMessenger）
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                Navigator.of(context).pop();
+              }
+
+              // if (context.mounted) {
+              //   Navigator.of(context).pop();
+              // }
             },
             child: Text('确定'),
           ),

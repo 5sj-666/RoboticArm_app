@@ -40,8 +40,14 @@ Motion _$MotionFromJson(Map<String, dynamic> json) => Motion(
   keyframes: (json['keyframes'] as List<dynamic>)
       .map((e) => Keyframe.fromJson(e as Map<String, dynamic>))
       .toList(),
+  nodes: (json['nodes'] as List<dynamic>?)
+      ?.map(
+        (e) => (e as List<dynamic>).map((e) => (e as num).toDouble()).toList(),
+      )
+      .toList(),
   author: json['author'] as String?,
-  faverite: (json['faverite'] as num?)?.toInt(),
+  favorite: (json['favorite'] as num?)?.toInt(),
+  timingFunc: json['timingFunc'] as String?,
 );
 
 Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
@@ -51,7 +57,9 @@ Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
   'imgs': instance.imgs,
   'coverImg': instance.coverImg,
   'keyframes': instance.keyframes,
+  'nodes': instance.nodes,
   'createTime': instance.createTime,
   'author': instance.author,
-  'faverite': instance.faverite,
+  'favorite': instance.favorite,
+  'timingFunc': instance.timingFunc,
 };

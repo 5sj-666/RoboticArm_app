@@ -313,6 +313,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.2.4"
+  draggable_float_widget:
+    dependency: "direct main"
+    description:
+      name: draggable_float_widget
+      sha256: "075675c56f6b2bfc9f972a3937dc1b59838489a312f75fe7e90ba6844a84dce4"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.0"
   dylib:
     dependency: transitive
     description:
@@ -1637,6 +1645,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.2.0"
+  three_js_transform_controls:
+    dependency: "direct main"
+    description:
+      name: three_js_transform_controls
+      sha256: "4c0c5734c7886dee77bcd365735c8ddf2d958aafc5cd6801b262cfcaefc46b73"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.2.1"
   three_js_urdf_parser:
     dependency: "direct main"
     description:
@@ -1766,7 +1782,7 @@ packages:
     source: hosted
     version: "1.1.19"
   vector_math:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: vector_math
       sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b

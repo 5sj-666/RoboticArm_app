@@ -27,6 +27,22 @@ class DesignMotionRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [DesignToolPathPage]
+class DesignToolPathRoute extends PageRouteInfo<void> {
+  const DesignToolPathRoute({List<PageRouteInfo>? children})
+    : super(DesignToolPathRoute.name, initialChildren: children);
+
+  static const String name = 'DesignToolPathRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const DesignToolPathPage();
+    },
+  );
+}
+
+/// generated route for
 /// [DetailPage]
 class DetailRoute extends PageRouteInfo<DetailRouteArgs> {
   DetailRoute({required String id, List<PageRouteInfo>? children})
