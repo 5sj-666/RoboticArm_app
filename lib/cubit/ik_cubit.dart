@@ -29,21 +29,33 @@ class IKState {
   final Pose dragPose;
   // 建议使用 final，状态变更通过 copyWith 产生新对象
   final List<double> preJointsDeg;
+  // rad 弧度
+  final List<double> preJointsRad;
 
   // 修正构造函数赋值
-  IKState({required this.dragPose, required this.preJointsDeg});
+  IKState({
+    required this.dragPose,
+    required this.preJointsDeg,
+    required this.preJointsRad,
+  });
 
   // 提供一个初始状态的工厂方法
   factory IKState.initial() => IKState(
     dragPose: Pose(mode: GizmoType.translate),
     preJointsDeg: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    preJointsRad: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
   );
 
-  IKState copyWith({Pose? dragPose, List<double>? preJointsDeg}) {
+  IKState copyWith({
+    Pose? dragPose,
+    List<double>? preJointsDeg,
+    List<double>? preJointsRad,
+  }) {
     return IKState(
       dragPose: dragPose ?? this.dragPose,
       // 关键点：使用 List.from 强制创建一个新的数组副本
       preJointsDeg: preJointsDeg ?? List.from(this.preJointsDeg),
+      preJointsRad: preJointsRad ?? List.from(this.preJointsRad),
     );
   }
 }
@@ -58,5 +70,9 @@ class IKCubit extends Cubit<IKState> {
 
   void setPreJointsDeg(List<double> degs) {
     emit(state.copyWith(preJointsDeg: degs));
+  }
+
+  void setPreJointsRad(List<double> rads) {
+    emit(state.copyWith(preJointsRad: rads));
   }
 }

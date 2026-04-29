@@ -48,6 +48,7 @@ Motion _$MotionFromJson(Map<String, dynamic> json) => Motion(
   author: json['author'] as String?,
   favorite: (json['favorite'] as num?)?.toInt(),
   timingFunc: json['timingFunc'] as String?,
+  time: (json['time'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
@@ -62,4 +63,5 @@ Map<String, dynamic> _$MotionToJson(Motion instance) => <String, dynamic>{
   'author': instance.author,
   'favorite': instance.favorite,
   'timingFunc': instance.timingFunc,
+  'time': instance.time,
 };

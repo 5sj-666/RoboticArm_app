@@ -47,6 +47,7 @@ enum MotionStatus {
   paused,
   finished,
   goToZero,
+  designPath, // 设计路径
 }
 
 class MotionsState {

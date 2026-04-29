@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
+import 'package:robotic_arm_app/components/Dialog/SaveToolPath.dart';
 
 class MotionStatusBtn extends StatelessWidget {
   const MotionStatusBtn({super.key});
@@ -81,6 +82,19 @@ class MotionStatusBtn extends StatelessWidget {
                   motionsCubit.updateStatus(MotionStatus.prepare);
                 },
                 child: Text('结束'),
+              )
+            else if (state.status == MotionStatus.designPath)
+              FilledButton(
+                onPressed: () {
+                  // print('保存末端运行路径');
+                  saveToolPath(context: context, motionsCubit: motionsCubit);
+                },
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll<Color>(
+                    Colors.lightGreen.shade300,
+                  ),
+                ),
+                child: Text('保存设计'),
               ),
           ],
         );

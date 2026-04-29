@@ -107,17 +107,20 @@ class FlutterGameState extends State<ArmPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     rt = RunTimeWorkSpace(curMotion: motionsCubit.state.currentMotion);
-
+    print("---didChangeDependencies---");
     if (motionsCubit.state.currentMotion?.nodes != null) {
       // 发生变化时，更改objects的位置和姿态
       List<List<double>> nodes = motionsCubit.state.currentMotion?.nodes ?? [];
       Iterable<List<double>> newNodes = nodes.map(
         (innerList) => List<double>.from(innerList),
       );
-      toolPathCubit.setState(null, newNodes.toList(), null);
+      toolPathCubit.setState(tempPoses: newNodes.toList());
+
+      List<three.Vector3> tempNodesPosition = [];
 
       ///  赋值姿态 并 更新线段（CatmullRomCurve3）
       for (int i = 0; i < nodes.length; i++) {
+        nodesHelpers[i].matrixAutoUpdate = true;
         final temp = three.Matrix4().copyFromArray(nodes[i]);
         temp.decompose(
           nodesHelpers[i].position,
@@ -125,8 +128,14 @@ class FlutterGameState extends State<ArmPage> {
           nodesHelpers[i].scale,
         );
         nodesHelpers[i].updateMatrix();
-        nodesSpline[i] = three.Vector3.copy(nodesHelpers[i].position);
+        // nodesSpline[i] = three.Vector3.copy(nodesHelpers[i].position);
+        tempNodesPosition.add(nodesHelpers[i].position);
+        if (motionsCubit.state.status == MotionStatus.designPath) {
+          nodesHelpers[i].visible = false;
+        }
       }
+      nodesSpline = List.from(tempNodesPosition);
+      // initSpLines(nodesSpline, zeroWrapper);
       updateSplines(splineObjs, tempPoint);
     }
   }
@@ -142,6 +151,13 @@ class FlutterGameState extends State<ArmPage> {
   @override
   Widget build(BuildContext context) {
     final bool isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    // if (nodesHelpers.isNotEmpty &&
+    //     nodesHelpers[0].visible &&
+    //     motionsCubit.state.status == MotionStatus.designPath) {
+    //   for (int i = 0; i < nodesHelpers.length; i++) {
+    //     nodesHelpers[i].visible = false;
+    //   }
+    // }
 
     return Listener(
       // 对应 Web 的 mousemove
@@ -204,17 +220,56 @@ class FlutterGameState extends State<ArmPage> {
         }
       },
 
-      child: isCurrent
-          ? FocusScope(
-              // 当不可见时禁止请求焦点，进一步避免抢焦点
-              canRequestFocus: true,
-              child: threeJs.build(),
-            )
-          : FocusScope(
-              // 当不可见时禁止请求焦点，进一步避免抢焦点
-              canRequestFocus: false,
-              child: threeJs.build(),
-            ),
+      child: BlocListener<MotionsCubit, MotionsState>(
+        listener: (context, state) {
+          if (state.status == MotionStatus.designPath ||
+              motionsCubit.state.currentMotion?.nodes != null) {
+            for (int i = 0; i < nodesHelpers.length; i++) {
+              setState(() {
+                nodesHelpers[i].visible = true;
+              });
+            }
+            for (int i = 0; i < splineObjs.length; i++) {
+              setState(() {
+                splineObjs[i].line.visible = true;
+              });
+            }
+          } else {
+            for (int i = 0; i < nodesHelpers.length; i++) {
+              setState(() {
+                nodesHelpers[i].visible = false;
+              });
+            }
+            for (int i = 0; i < splineObjs.length; i++) {
+              setState(() {
+                splineObjs[i].line.visible = false;
+              });
+            }
+          }
+
+          // if (yourTargetObject == null) return;
+
+          // // ========== 1. 更新位姿 ==========
+          // yourTargetObject!.position.setFrom(state.pose.position);
+          // yourTargetObject!.quaternion.setFrom(state.pose.quaternion);
+
+          // // ========== 2. 更新显示/隐藏 ==========
+          // yourTargetObject!.visible = state.isVisible;
+
+          // // ========== 3. 其他你想更的都能写 ==========
+        },
+        child: isCurrent
+            ? FocusScope(
+                // 当不可见时禁止请求焦点，进一步避免抢焦点
+                canRequestFocus: true,
+                child: threeJs.build(),
+              )
+            : FocusScope(
+                // 当不可见时禁止请求焦点，进一步避免抢焦点
+                canRequestFocus: false,
+                child: threeJs.build(),
+              ),
+      ),
     );
   }
 
@@ -433,19 +488,26 @@ class FlutterGameState extends State<ArmPage> {
             List<List<double>> allSolutions = RobotKm.ik(
               threeMat2mat(nodesHelpers[0].matrix),
             );
+            if (allSolutions.isEmpty) {
+              rt.curKeyframe = Keyframe(
+                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                time: 0,
+              );
+              return;
+            }
             // print("allSolutions");
+            List<double> goodOneSol = allSolutions[0];
+            bool finded = false;
             for (int i = 0; i < allSolutions.length; i++) {
+              // 优先获取轴在上方的解
+              if (!finded && allSolutions[i][2] < 0) {
+                goodOneSol = allSolutions[i];
+                finded = true;
+              }
               print("逆解：${allSolutions[i]}");
             }
-            //       JointsState(
-            //         joint1: goodOneSol[0],
-            //         joint2: -goodOneSol[1],
-            //         joint3: -goodOneSol[2],
-            //         joint4: goodOneSol[3],
-            //         joint5: -goodOneSol[4],
-            //         joint6: goodOneSol[5],
-            //       ),
-            List<double> tempSol = allSolutions[0]
+            ikCubit.setPreJointsRad(goodOneSol);
+            List<double> tempSol = goodOneSol
                 .map((item) => item * 180 / math.pi)
                 .toList();
             tempSol[1] = -tempSol[1];
@@ -541,8 +603,19 @@ class FlutterGameState extends State<ArmPage> {
 
         /// ---------------- 路径逆解动作 开始 ------------
         if (motionsCubit.state.currentMotion?.nodes != null) {
+          double sumRuntime = motionsCubit.state.currentMotion?.time ?? 5.0;
+
           /// 获取t
-          double t = (rt.elapsedTime / 5.0).clamp(0, 1);
+          double x = (rt.elapsedTime / sumRuntime).clamp(0, 1);
+          final timingFunc =
+              motionsCubit.state.currentMotion?.timingFunc ?? "0.3,0.3,0.6,0.6";
+          final tfArr = timingFunc.split(",");
+          // final y = bezierXToY(t , [Offset(tfArr[0]),tfArr[1]], p2)
+          final t = bezierXToY(
+            x,
+            [double.parse(tfArr[0]), double.parse(tfArr[1])],
+            [double.parse(tfArr[2]), double.parse(tfArr[3])],
+          ).clamp(0.0, 1.0);
 
           /// 获取catCullRoom的曲线点
           splineObjs[0].curve.getPoint(t, tempPoint);
@@ -562,18 +635,28 @@ class FlutterGameState extends State<ArmPage> {
           List<List<double>> allSolutions = RobotKm.ik(
             threeMat2mat(targetMatrix),
           );
+
+          List<double> goodOneSol = RobotKm.getBestSolution(
+            allSolutions,
+            ikCubit.state.preJointsRad,
+          );
+          ikCubit.setPreJointsRad(List<double>.from(goodOneSol));
+
           // print("allSolutions");
           for (int i = 0; i < allSolutions.length; i++) {
             print("逆解：${allSolutions[i]}");
           }
+
           if (allSolutions.isEmpty) {
-            if (t >= 0.99) {
-              motionsCubit.updateStatus(MotionStatus.finished);
+            if (t >= 1.0) {
+              motionsCubit.updateStatus(MotionStatus.prepare);
               rt.elapsedTime = 0.0;
             }
             return;
           }
-          List<double> tempSol = allSolutions[0]
+
+          // List<double> tempSol = allSolutions[0]
+          List<double> tempSol = goodOneSol
               .map((item) => item * 180 / math.pi)
               .toList();
           tempSol[1] = -tempSol[1];
@@ -589,8 +672,9 @@ class FlutterGameState extends State<ArmPage> {
             jointsCubit.setSingleJoint('joint${i + 1}', tempSol[i]);
           }
 
-          if (t >= 0.99) {
-            motionsCubit.updateStatus(MotionStatus.finished);
+          if (t >= 1.0) {
+            // motionsCubit.updateStatus(MotionStatus.finished);
+            motionsCubit.updateStatus(MotionStatus.prepare);
             rt.elapsedTime = 0.0;
           }
           return;
@@ -784,107 +868,6 @@ class FlutterGameState extends State<ArmPage> {
       }
     });
 
-    // // 启用抗锯齿
-    // try {
-    //   // threeJs.renderer = three.WebGLRenderer({
-    //   //   'antialias': true, // 启用抗锯齿
-    //   //   'alpha': true, // 可选：启用透明背景
-    //   // });
-    //   threeJs.renderer = three.WebGLRenderer(
-    //     three.WebGLRendererParameters(
-    //       width: threeJs.width,
-    //       height: threeJs.height,
-    //       antialias: true, // 启用抗锯齿
-    //       alpha: true, // 可选：启用透明背景
-    //       gl: threeJs.gl!,
-    //     ),
-    //   );
-
-    //   threeJs.renderer?.setSize(threeJs.width, threeJs.height); // 设置渲染器大小
-    //   threeJs.renderer?.autoClear = false; // 允许覆盖渲染
-    //   print('Renderer initialized successfully with antialiasing');
-    // } catch (e) {
-    //   print('Error initializing renderer: $e');
-    // } finally {
-    //   print('Renderer initialization attempt completed.');
-    // }
-
-    // // 一个小长方体，用来展示逆解姿态
-    // var ikCuboid = three.BoxGeometry(0.1, 0.05, 0.01);
-    // var ikMaterial = three.MeshBasicMaterial({
-    //   three.MaterialProperty.color: three.Color.fromHex64(0xff00ff),
-    //   three.MaterialProperty.transparent: true, // 必须开启透明混合
-    //   three.MaterialProperty.opacity: 0.5, // 设置透明度，范围从 0.0 到 1.0
-    // });
-    // var ikCube = three.Mesh(ikCuboid, ikMaterial);
-    // final ikPoseCtrl = three.Object3D();
-    // ikPoseCtrl.position = three.Vector3(0.2, 0.2, 0.2);
-    // ikPoseCtrl.add(ikCube);
-    // ikPoseCtrl.add(AxesHelper(0.2));
-
-    // // 移动控制
-    // final control = TransformControls(threeJs.camera, threeJs.globalKey);
-    // control.attach(ikPoseCtrl);
-    // control.mode = ikCubit.state.dragPose.mode;
-    // control.size = 0.5;
-
-    // // threeJs.scene.add(control);
-    // // threeJs.scene.add(control);
-    // // zeroWrapper.add(ikPoseCtrl);
-
-    // vector_math.Matrix4 threeMat2mat(three.Matrix4 mat) {
-    //   return vector_math.Matrix4.fromFloat64List(
-    //     Float64List.fromList(ikPoseCtrl.matrix.storage),
-    //   );
-    // }
-
-    // control.addEventListener('change', (event) {
-    //   threeJs.render();
-
-    //   /// 获取逆解集合
-    //   List<List<double>> allSolutions = RobotKm.ik(
-    //     threeMat2mat(ikPoseCtrl.matrix),
-    //   );
-
-    //   /// 获取最优解
-    //   List<double> predegs = ikCubit.state.preJointsDeg
-    //       .map((ele) => ele * math.pi / 180)
-    //       .toList();
-    //   List<double> goodOneSol = RobotKm.getBestSolution(allSolutions, predegs);
-    //   if (goodOneSol.isNotEmpty) {
-    //     print('好解：$goodOneSol');
-    //     jointsCubit.setJoints(
-    //       JointsState(
-    //         joint1: goodOneSol[0],
-    //         joint2: -goodOneSol[1],
-    //         joint3: -goodOneSol[2],
-    //         joint4: goodOneSol[3],
-    //         joint5: -goodOneSol[4],
-    //         joint6: goodOneSol[5],
-    //       ),
-    //     );
-    //     ikCubit.setPreJointsDeg(goodOneSol);
-    //   } else {
-    //     ikCubit.setPreJointsDeg([]);
-    //   }
-    // });
-    // control.addEventListener('dragging-changed', (event) {
-    //   orbitControle.enabled = !event.value;
-    // });
-
-    /// 添加平面
-    // final planeGeo = three.PlaneGeometry(2, 2);
-    // planeGeo.rotateX(-math.pi / 2);
-    // final planeMat = three.MeshBasicMaterial({
-    //   three.MaterialProperty.color: 0xaaaaaa, // 灰色地面
-    //   three.MaterialProperty.transparent: true, // 必须开启！否则不生效
-    //   three.MaterialProperty.opacity: 0.5, // 半透明
-    //   three.MaterialProperty.depthWrite: false,
-    // });
-    // final plane = three.Mesh(planeGeo, planeMat);
-    // plane.position.y = -0.1; // 高度
-    // plane.receiveShadow = true;
-    // threeJs.scene.add(plane);
     // 圆形平面
     final planeGeo = three.CircleGeometry(radius: 0.8, segments: 64);
     planeGeo.rotateX(-math.pi / 2);
@@ -1078,6 +1061,9 @@ class FlutterGameState extends State<ArmPage> {
     }
     // threeJs.scene.add(object);
     if (helpers != null) {
+      // 只在设计路径和运行路径动作时才展示
+      // splineObjs[i].line.visible = false;
+      object.visible = false;
       helpers.add(object);
     }
 
@@ -1138,19 +1124,9 @@ class FlutterGameState extends State<ArmPage> {
 
     for (int i = 0; i < splineObjs.length; i++) {
       wrapper.add(splineObjs[i].line);
+      // 只在设计路径和运行路径动作时才展示
+      splineObjs[i].line.visible = false;
     }
-
-    /// 可运行线段
-    // final curve = three.CatmullRomCurve3(points: nodesSpline);
-    // List<three.Vector?> points = curve.getPoints(20);
-
-    // // 4. 创建几何体并显示
-    // final geometry3 = three.BufferGeometry().setFromPoints(points);
-    // final material3 = three.LineBasicMaterial({
-    //   three.MaterialProperty.color: 0xff0000,
-    // });
-    // final line = three.Line(geometry3, material3);
-    // wrapper.add(line);
   }
 
   /// 更新线段
@@ -1230,7 +1206,7 @@ class FlutterGameState extends State<ArmPage> {
     }
     // tempPoseList;
 
-    toolPathCubit.setState(nodesSpline, tempPoseList, null);
+    toolPathCubit.setState(tempNodes: nodesSpline, tempPoses: tempPoseList);
   }
 }
 

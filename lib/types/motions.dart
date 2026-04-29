@@ -54,6 +54,7 @@ class Motion {
   String? author;
   int? favorite;
   String? timingFunc; // 在末端路径的情况的下，用到这个缓动函数
+  double? time;
 
   Motion({
     required this.id,
@@ -67,6 +68,7 @@ class Motion {
     this.author,
     this.favorite,
     this.timingFunc,
+    this.time,
   });
 
   Map<String, dynamic> toJson() => _$MotionToJson(this);
