@@ -14,16 +14,17 @@ enum BleStatus {
   off,
   on,
   unknow,
-  scan,
-  scaning,
-  scaned,
   connecting,
   connected,
   disconnected,
+  error, // 发生错误
 }
+
+enum ScanStatus { indle, scanning, scaned, error }
 
 class BleState {
   final BleStatus status;
+  final ScanStatus scanStatus;
   final bool isBleOn;
   final List<BluetoothDevice> devices;
   final BluetoothDevice? device;
@@ -37,6 +38,7 @@ class BleState {
 
   BleState({
     this.status = BleStatus.unknow,
+    this.scanStatus = ScanStatus.indle,
     this.isBleOn = false,
     this.devices = const [],
     this.device,
@@ -52,6 +54,7 @@ class BleState {
 
   copyWith({
     BleStatus? status,
+    ScanStatus? scanStatus,
     int? index,
     bool? isBleOn,
     List<BluetoothDevice>? devices,
@@ -66,6 +69,7 @@ class BleState {
   }) {
     return BleState(
       status: status ?? this.status,
+      scanStatus: scanStatus ?? this.scanStatus,
       isBleOn: isBleOn ?? this.isBleOn,
       devices: devices ?? this.devices,
       device: device ?? this.device,
@@ -86,31 +90,41 @@ class BleCubit extends Cubit<BleState> {
 
   BleCubit(this._motorLogCubit) : super(BleState());
 
+  // 设置蓝牙的状态值，所有更改BleState.state.status的行为都通过这个函数，以便调试定位
+  setStatus(String funcName, BleStatus status) {
+    print(':: $funcName 更改蓝牙状态为: $status');
+    emit(state.copyWith(status: status));
+  }
+
+  setScanStatus(String funcName, ScanStatus status) {
+    emit(state.copyWith(scanStatus: status));
+  }
+
   init() async {
     print('初始化蓝牙');
     FlutterBluePlus.setLogLevel(LogLevel.verbose, color: false);
     // （可选）自定义日志输出
-    FlutterBluePlus.logs.listen((String log) {
-      // 可将日志发送至任意位置
-      print('---打印蓝牙日志: $log');
-      // 正则表达式过滤log，获取函数名，<> 表示刚执行, () 表示执行结束
-      /// 写个正则表达式，功能是提取函数名，格式为 <functionName> 或 (functionName)
-      // RegExp regExp = RegExp(r'[<\(](.*?)[>\)]
-      /// 如何使用正则表达式获取字符串中的目标字符串，只想拿到第一个匹配的字符串
+    // FlutterBluePlus.logs.listen((String log) {
+    //   // 可将日志发送至任意位置
+    //   print('---打印蓝牙日志: $log');
+    //   // 正则表达式过滤log，获取函数名，<> 表示刚执行, () 表示执行结束
+    //   /// 写个正则表达式，功能是提取函数名，格式为 <functionName> 或 (functionName)
+    //   // RegExp regExp = RegExp(r'[<\(](.*?)[>\)]
+    //   /// 如何使用正则表达式获取字符串中的目标字符串，只想拿到第一个匹配的字符串
 
-      // final FetchFuncName? getFuncName = firstBracketValue(log);
-      // print('---打印蓝牙日志: ${getFuncName?.funcName} 阶段: ${getFuncName?.step}');
-      // if (getFuncName != null) {
-      // if (getFuncName.step == 'start') {
-      //   if (getFuncName.funcName == 'startScan') {
-      //     emit(state.copyWith(status: BleStatus.scaning));
-      //   }
-      // else if (getFuncName.funcName == 'stopScan') {
-      //   emit(state.copyWith(status: BleStatus.scaned));
-      // }
-      // } else if (getFuncName.step == 'end') {}
-      // }
-    });
+    //   // final FetchFuncName? getFuncName = firstBracketValue(log);
+    //   // print('---打印蓝牙日志: ${getFuncName?.funcName} 阶段: ${getFuncName?.step}');
+    //   // if (getFuncName != null) {
+    //   // if (getFuncName.step == 'start') {
+    //   //   if (getFuncName.funcName == 'startScan') {
+    //   //     emit(state.copyWith(status: BleStatus.scaning));
+    //   //   }
+    //   // else if (getFuncName.funcName == 'stopScan') {
+    //   //   emit(state.copyWith(status: BleStatus.scaned));
+    //   // }
+    //   // } else if (getFuncName.step == 'end') {}
+    //   // }
+    // });
 
     await bleSupported();
     await bleAuthorized();
@@ -163,8 +177,9 @@ class BleCubit extends Cubit<BleState> {
 
       if (bleState == BluetoothAdapterState.on) {
         // emit(state.copyWith(isBleOn: true, status: BleStatus.on));
-        ///直接设置为可扫描状态
-        emit(state.copyWith(isBleOn: true, status: BleStatus.scan));
+        // 因为要追寻blestatus的更改，所以在此特殊处理
+        setStatus("adapterState listen", BleStatus.on);
+        emit(state.copyWith(isBleOn: true));
       } else {
         emit(state.copyWith(isBleOn: false, status: BleStatus.off));
         // 向用户展示错误提示等
@@ -172,34 +187,57 @@ class BleCubit extends Cubit<BleState> {
     });
   }
 
-  Future<void> bleScan() async {
-    emit(state.copyWith(status: BleStatus.scaning));
-    await FlutterBluePlus.startScan(
-      withServices: [Guid("00ff")], // 匹配指定服务 UUID
-      withNames: ["ESP"], // 或匹配指定设备名称
-      timeout: Duration(seconds: 15), // 扫描超时时间
-    );
+  Future<String> bleScan() async {
+    try {
+      setScanStatus('ble scan', ScanStatus.scanning);
+      await FlutterBluePlus.startScan(
+        withServices: [Guid("00ff")], // 匹配指定服务 UUID
+        withNames: ["ESP"], // 或匹配指定设备名称
+        timeout: Duration(seconds: 15), // 扫描超时时间
+      );
+    } catch (err) {
+      setScanStatus('ble scan', ScanStatus.error);
+      return err.toString();
+    }
 
     Future.delayed(const Duration(seconds: 15), () {
-      emit(state.copyWith(status: BleStatus.scaned));
+      // emit(state.copyWith(status: BleStatus.scaned));
+      setScanStatus('ble scan', ScanStatus.scaned);
     });
+
+    return '';
   }
 
-  Future<void> bleStopScan() async {
-    await FlutterBluePlus.stopScan();
-    emit(state.copyWith(status: BleStatus.scaned));
+  Future<String> bleStopScan() async {
+    try {
+      await FlutterBluePlus.stopScan();
+      setScanStatus("bleStopScan", ScanStatus.scaned);
+    } catch (err) {
+      return err.toString();
+    }
+
+    return '';
   }
 
   Future<bool> bleConnectDevice(BluetoothDevice device) async {
+    print("---bleConnectDevice");
     try {
-      emit(state.copyWith(status: BleStatus.connecting, device: device));
+      // emit(state.copyWith(status: BleStatus.connecting, device: device));
+      setStatus("bleConnectDevice", BleStatus.connecting);
+      emit(state.copyWith(device: device));
+
       await device.connect(autoConnect: false, license: License.free);
-      emit(state.copyWith(status: BleStatus.connected));
+      // emit(state.copyWith(status: BleStatus.connected));
+      setStatus("bleConnectDevice", BleStatus.connected);
+
       getWriteChracteristic();
       return true;
     } catch (e) {
       print('连接设备失败: $e');
-      emit(state.copyWith(status: BleStatus.disconnected, device: null));
+
+      // emit(state.copyWith(status: BleStatus.disconnected, device: null));
+      setStatus("bleConnectDevice", BleStatus.disconnected);
+      emit(state.copyWith(device: null));
       return false;
     }
   }
@@ -230,14 +268,16 @@ class BleCubit extends Cubit<BleState> {
   }
 
   setNotify() async {
+    print("--- setNotify");
     if (state.characteristic != null) {
-      final subscription = state.characteristic!.lastValueStream.listen((
+      // final subscription = state.characteristic!.lastValueStream.listen((
+      final subscription = state.characteristic!.onValueReceived.listen((
         List<int> value,
       ) {
         print('----接收到来自蓝牙的通知 : $value');
         // _motorLogCubit.addLog(cmd: value);
         if (_motorLogCubit != null) {
-          _motorLogCubit.addLog(cmd: value);
+          _motorLogCubit.addLog(cmd: value, role: "R");
         }
         // lastValueStream 触发场景：
         // - 调用 read() 后
@@ -247,20 +287,30 @@ class BleCubit extends Cubit<BleState> {
       });
 
       state.device?.cancelWhenDisconnected(subscription);
-      await state.characteristic?.setNotifyValue(true);
+
+      try {
+        await state.characteristic?.setNotifyValue(true);
+        // await state.characteristic?.setIndicationsValue(true);
+      } catch (err) {
+        print("---setNotify: ${err.toString()}");
+      }
     }
   }
 
-  Future<bool> bleDisconnectDevice(BluetoothDevice device) async {
+  Future<String> bleDisconnectDevice(BluetoothDevice device) async {
     try {
       await device.disconnect();
       //直接设置为等待扫描状态
-      emit(state.copyWith(status: BleStatus.scan, device: null));
-      return true;
+      // emit(state.copyWith(status: BleStatus.scan, device: null));
+      setStatus('bleDisconnectDevice', BleStatus.disconnected);
+      emit(state.copyWith(device: null));
+      return '';
     } catch (e) {
-      emit(state.copyWith(status: BleStatus.connecting, device: null));
-      print('连接设备失败: $e');
-      return false;
+      // emit(state.copyWith(status: BleStatus.connecting, device: null));
+      setStatus('bleDisconnectDevice', BleStatus.connected);
+      // emit(state.copyWith(device: null));
+      print('断开连接设备失败: $e');
+      return e.toString();
     }
   }
 
@@ -277,6 +327,7 @@ class BleCubit extends Cubit<BleState> {
           print(
             "断开原因：${state.device?.disconnectReason?.code} ${state.device?.disconnectReason?.description}",
           );
+          setStatus("whenBleDisconnect", BleStatus.disconnected);
         }
       });
 
@@ -333,7 +384,9 @@ class BleCubit extends Cubit<BleState> {
       Uint8List byteList = floatList.buffer.asUint8List();
       // print('---发送帧$byteList');
       await state.characteristic!.write(byteList, withoutResponse: false);
-
+      if (_motorLogCubit != null) {
+        // _motorLogCubit.addLog(cmd: message, role: "S");
+      }
       // state.characteristic.
     } else {
       // 无特征值时的错误处理
@@ -344,6 +397,9 @@ class BleCubit extends Cubit<BleState> {
   sendSingleCmd(List<int> cmd) async {
     if (state.characteristic != null) {
       await state.characteristic!.write(cmd, withoutResponse: false);
+      if (_motorLogCubit != null) {
+        _motorLogCubit.addLog(cmd: cmd, role: "S");
+      }
     }
   }
 }

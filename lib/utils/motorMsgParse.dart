@@ -247,6 +247,14 @@ Map<String, dynamic> msg18(List<int> cmd, Map<String, dynamic> headerObj) {
     parseStr = "①⑧更改$canId电机的位置模式速度限制为$speed";
   }
 
+  // 电流模式  0X7006
+  if (writeType == 0x7006) {
+    List<int> iqRef = cmdData.sublist(4, 8).reversed.toList();
+    String iqStr = (convert32BitFloatTo64BitNumber(iqRef)).toStringAsFixed(4);
+    double iq = double.parse(iqStr);
+    parseStr = "①⑧更改$canId电机的电流为$iq";
+  }
+
   return {
     'canId': canId,
     'masterId': masterId,

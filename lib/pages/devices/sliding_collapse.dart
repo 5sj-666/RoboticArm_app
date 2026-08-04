@@ -6,8 +6,7 @@ import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
 import 'package:robotic_arm_app/components/MotionStatusBtn.dart';
-import 'package:robotic_arm_app/pages/devices/bleDevices.dart';
-// import 'package:robotic_arm_app/pages/devices/motor/motorLog.dart';
+import 'package:robotic_arm_app/components/BleStatusBtn.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 
 Widget slidingCollapse(BleCubit bleCubit) {
@@ -82,73 +81,7 @@ Widget slidingCollapse(BleCubit bleCubit) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              BlocBuilder<BleCubit, BleState>(
-                builder: (bleContext, state) {
-                  return Row(
-                    children: [
-                      if (state.status == BleStatus.unknow ||
-                          state.status == BleStatus.off ||
-                          state.status == BleStatus.on)
-                        IconButton(
-                          iconSize: 32,
-                          tooltip: '蓝牙',
-                          icon: bleCubit.state.isBleOn
-                              ? const Icon(Icons.bluetooth, color: Colors.blue)
-                              : const Icon(Icons.bluetooth, color: Colors.grey),
-                          onPressed: () async {
-                            print('蓝牙');
-                            final result = await bleCubit.turnOn();
-                            // 请求打开蓝牙的permission
-                            SnackBar snackBar;
-                            if (result) {
-                              snackBar = SnackBar(content: Text('打开蓝牙成功'));
-                            } else {
-                              snackBar = SnackBar(
-                                content: Text('打开失败，请去系统中打开蓝牙'),
-                              );
-                            }
-
-                            ScaffoldMessenger.of(
-                              // ignore: use_build_context_synchronously
-                              context,
-                            ).showSnackBar(snackBar);
-                          },
-                        ),
-                      if (state.status == BleStatus.scan ||
-                          state.status == BleStatus.on ||
-                          state.status == BleStatus.scaned)
-                        ElevatedButton(
-                          onPressed: () {
-                            _showDialog(context);
-                            print('---点击扫描----');
-                            bleCubit.bleScan();
-                          },
-                          child: Text('扫描设备'),
-                        ),
-                      if (state.status == BleStatus.scaning)
-                        ElevatedButton(
-                          onPressed: () {
-                            print('---点击暂停扫描----');
-                            bleCubit.bleStopScan();
-                          },
-                          child: Text('扫描中'),
-                        ),
-
-                      if (state.status == BleStatus.connected ||
-                          state.status == BleStatus.connecting)
-                        ElevatedButton(
-                          onPressed: () {
-                            print('---已连接设备, 点击查看列表----');
-                            _showDialog(context);
-                          },
-                          child: Text(
-                            state.status == BleStatus.connected ? '已连接' : '连接中',
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
+              BleStatusBtn(),
               Expanded(
                 flex: 1,
                 child: Column(
@@ -200,30 +133,6 @@ Widget slidingCollapse(BleCubit bleCubit) {
         },
       ),
     ),
-  );
-}
-
-Future<void> _showDialog(context) async {
-  return showDialog<void>(
-    animationStyle: AnimationStyle(),
-    context: context,
-    barrierDismissible: false,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('连接机械臂'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 200,
-          child: BleDevices(),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('关闭'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      );
-    },
   );
 }
 

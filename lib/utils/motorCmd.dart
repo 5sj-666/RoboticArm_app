@@ -51,6 +51,14 @@ class MotorCmdGenerator {
         twaiData = [0x16, 0x70, 0x00, 0x00, ...locBytes];
       },
 
+      'iq_ref': () {
+        final int motorId = params['motorId'] ?? 0;
+        final double iqRef = params['iq_ref'] ?? 0.0;
+        twaiId = [0x12, 0x00, 0xfd, motorId];
+        final List<int> iqBytes = numToUint8Array(iqRef);
+        twaiData = [0x06, 0x70, 0x00, 0x00, ...iqBytes];
+      },
+
       /// 0运控模式 1 位置模式 2 速度模式 3电流模式
       'run_mode': () {
         final int motorId = params['motorId'] ?? 0;

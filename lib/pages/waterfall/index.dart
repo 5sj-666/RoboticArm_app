@@ -33,7 +33,8 @@ class WaterfallPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              context.router.push(NamedRoute('SearchRoute'));
+              // context.router.push(NamedRoute('SearchRoute'));
+              context.router.push(NamedRoute('DesignToolPathRoute'));
               // 执行搜索
               // print("执行搜索：${_searchController.text}");
             },

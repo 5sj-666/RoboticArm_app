@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 // import 'package:auto_route/auto_route.dart';
+import 'package:toastification/toastification.dart';
 
 class BleDevices extends StatelessWidget {
   @override
@@ -39,39 +40,40 @@ class BleDevices extends StatelessWidget {
                       ),
                       onPressed: () async {
                         if (device.isConnected == false) return;
-                        bool result = await bleCubit.bleDisconnectDevice(
+                        String result = await bleCubit.bleDisconnectDevice(
                           device,
                         );
-                        SnackBar snackBar;
-                        if (result) {
-                          snackBar = SnackBar(content: Text('已断开设备'));
-                        } else {
-                          snackBar = SnackBar(content: Text('断开设备失败'));
-                        }
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        toastification.show(
+                          type: result == ''
+                              ? ToastificationType.success
+                              : ToastificationType.error,
+                          title: Text(result == '' ? '已断开设备' : result),
+                          autoCloseDuration: const Duration(seconds: 999),
+                        );
                       },
                     )
                   : ElevatedButton(
                       onPressed: () async {
                         bool result = await bleCubit.bleConnectDevice(device);
-                        SnackBar snackBar;
                         if (result) {
-                          snackBar = SnackBar(
-                            content: Text(
+                          toastification.show(
+                            type: ToastificationType.success,
+                            title: Text(
                               '已连接到设备 ${device.advName.isNotEmpty
                                   ? device.advName
                                   : device.platformName.isNotEmpty
                                   ? device.platformName
                                   : device.remoteId.str}',
                             ),
+                            autoCloseDuration: const Duration(seconds: 999),
                           );
                         } else {
-                          snackBar = SnackBar(content: Text('连接设备失败'));
+                          toastification.show(
+                            type: ToastificationType.error,
+                            title: Text('连接设备失败'),
+                            autoCloseDuration: const Duration(seconds: 999),
+                          );
                         }
-
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
                       },
                       child: Text('连接'),
                     ),

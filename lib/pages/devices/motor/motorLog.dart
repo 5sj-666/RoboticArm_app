@@ -12,7 +12,8 @@ class MotorLogPage extends StatelessWidget {
           itemCount: state.list.length,
           itemBuilder: (context, index) {
             return ListTile(
-              leading: Icon(Icons.label),
+              // leading: Icon(Icons.label),
+              leading: Text(state.list[index].role),
               title: Text(state.list[index].parseMsg),
               onTap: () {
                 // // 点击事件

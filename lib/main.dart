@@ -11,6 +11,8 @@ import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'app_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:toastification/toastification.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 void main() async {
   // 确保 WidgetsFlutterBinding 初始化
@@ -53,19 +55,22 @@ class MyApp extends StatelessWidget {
 
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
-      child: MaterialApp.router(
-        title: 'RobticArm_app',
-        theme: ThemeData(
-          // useMaterial3: true,
-          // colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-          // colorScheme: ColorScheme.fromSeed(
-          //   seedColor: Colors.white,
-          //   primary: Colors.deepOrange,
-          //   onPrimary: Colors.red, // 推荐用白色，保证对比度
-          // ),
+      child: ToastificationWrapper(
+        child: MaterialApp.router(
+          title: 'RobticArm_app',
+          theme: ThemeData(
+            // useMaterial3: true,
+            // colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+            // colorScheme: ColorScheme.fromSeed(
+            //   seedColor: Colors.white,
+            //   primary: Colors.deepOrange,
+            //   onPrimary: Colors.red, // 推荐用白色，保证对比度
+            // ),
+          ),
+          // home: MyHomePage(),
+          routerConfig: _appRouter.config(),
+          builder: FlutterSmartDialog.init(),
         ),
-        // home: MyHomePage(),
-        routerConfig: _appRouter.config(),
       ),
     );
   }

@@ -98,3 +98,8 @@ markerTimeEnd: double,
 
 3d路径编辑：
 https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_spline_editor.html
+
+
+toast插件使用:
+https://pub.dev/packages/toastification
+<!-- https://github.com/nslogx/flutter_easyloading/blob/develop/README-zh_CN.md-->

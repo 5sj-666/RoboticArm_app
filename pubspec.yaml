@@ -46,6 +46,10 @@ dependencies:
   draggable_float_widget: ^0.1.0
   vector_math: ^2.2.0
   three_js_transform_controls: ^0.2.1
+  flutter_smart_dialog: ^5.1.1
+  # flutter_easyloading: ^4.0.2
+  toastification: ^3.2.0
+
 
 
 dev_dependencies:

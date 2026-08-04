@@ -4,6 +4,8 @@ import 'package:robotic_arm_app/pages/motions/design_motion.dart';
 import 'package:robotic_arm_app/pages/motions/designToolPath.dart';
 import 'package:robotic_arm_app/pages/waterfall/search.dart';
 import 'package:robotic_arm_app/pages/motions/detail.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:flutter/material.dart';
 
 part 'app_router.gr.dart';
 
@@ -34,5 +36,9 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRouteGuard> get guards => [
     // optionally add root guards here
+  ];
+
+  List<NavigatorObserver> get navigatorObservers => [
+    FlutterSmartDialog.observer,
   ];
 }

@@ -31,28 +31,29 @@ class DevicesPage extends StatelessWidget {
                 builder: (motionContext, motionsState) {
                   return Stack(
                     children: [
-                      Positioned(
-                        top: 20,
-                        left: 10,
-                        child: FilledButton(
-                          onPressed: () {
-                            if (motionsState.status !=
-                                MotionStatus.designPath) {
-                              motionsCubit.updateStatus(
-                                MotionStatus.designPath,
-                              );
-                            } else {
-                              motionsCubit.updateStatus(MotionStatus.idle);
-                            }
-                          },
-                          child: Text(
-                            /// 后续改为 保存路径
-                            motionsState.status == MotionStatus.designPath
-                                ? "退出"
-                                : "设计路径",
+                      if (motionsCubit.state.status == MotionStatus.idle)
+                        Positioned(
+                          top: 20,
+                          left: 10,
+                          child: FilledButton(
+                            onPressed: () {
+                              if (motionsState.status !=
+                                  MotionStatus.designPath) {
+                                motionsCubit.updateStatus(
+                                  MotionStatus.designPath,
+                                );
+                              } else {
+                                motionsCubit.updateStatus(MotionStatus.idle);
+                              }
+                            },
+                            child: Text(
+                              /// 后续改为 保存路径
+                              motionsState.status == MotionStatus.designPath
+                                  ? "退出"
+                                  : "设计路径",
+                            ),
                           ),
                         ),
-                      ),
                       if (motionsCubit.state.status == MotionStatus.designPath)
                         Positioned(
                           top: 70,
@@ -66,11 +67,6 @@ class DevicesPage extends StatelessWidget {
                                 ikCubit.setMode(GizmoType.translate);
                               }
                             },
-                            // style: ButtonStyle(
-                            //   backgroundColor: WidgetStatePropertyAll<Color>(
-                            //     Colors.lightGreen.shade300,
-                            //   ),
-                            // ),
                             child: Text(
                               ikCubit.state.dragPose.mode == GizmoType.translate
                                   ? "移动"

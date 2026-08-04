@@ -41,21 +41,21 @@ class SlidingPanelContent extends StatelessWidget {
       final motorCmd = MotorCmdGenerator();
       final enableCmd = motorCmd.generateCMD('enable', {'motorId': motorId});
       bleCubit.sendSingleCmd(enableCmd);
-      motorLogCubit.addLog(cmd: enableCmd);
+      // motorLogCubit.addLog(cmd: enableCmd);
 
       final runmodeCmd = motorCmd.generateCMD('run_mode', {
         'motorId': motorId,
         'run_mode': 1,
       });
       bleCubit.sendSingleCmd(runmodeCmd);
-      motorLogCubit.addLog(cmd: runmodeCmd);
+      // motorLogCubit.addLog(cmd: runmodeCmd);
 
       final speedCmd = motorCmd.generateCMD('limit_spd', {
         'motorId': motorId,
         'limit_spd': 2.0,
       });
       bleCubit.sendSingleCmd(speedCmd);
-      motorLogCubit.addLog(cmd: speedCmd);
+      // motorLogCubit.addLog(cmd: speedCmd);
 
       // 第二个关节旋转方向与3D模型相反，所以位置取反
       if (motorId == 22) {
@@ -67,7 +67,7 @@ class SlidingPanelContent extends StatelessWidget {
         'loc_ref': newVal / 180 * 3.14,
       });
       bleCubit.sendSingleCmd(locationCmd);
-      motorLogCubit.addLog(cmd: locationCmd);
+      // motorLogCubit.addLog(cmd: locationCmd);
     }
 
     return BlocBuilder<JointsCubit, JointsState>(
