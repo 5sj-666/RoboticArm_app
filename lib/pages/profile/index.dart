@@ -122,11 +122,36 @@ class ProfilePage extends StatelessWidget {
               title: Text('设置位置'),
               onTap: () {
                 ///设置位置
-                 final cmd = mortorCmd.generateCMD('loc_ref', {
+                final cmd = mortorCmd.generateCMD('loc_ref', {
                   'motorId': 21,
                   'loc_ref': 1.0,
                 });
                 bleCubit.sendSingleCmd(cmd);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('力矩模式 t'),
+              onTap: () {
+                // for (int i = 21; i < 21 + 6; i++) {
+                //   /// 设置runmode
+                //   final cmd = mortorCmd.generateCMD('run_mode', {
+                //     'motorId': i,
+                //     'run_mode': 3,
+                //   });
+                //   bleCubit.sendSingleCmd(cmd);
+                //   print('设置力矩:$i');
+                // }
+                final cmd = mortorCmd.generateCMD('run_mode', {
+                  'motorId': 23,
+                  'run_mode': 3,
+                });
+                bleCubit.sendSingleCmd(cmd);
+                final iqcmd = mortorCmd.generateCMD('iq_ref', {
+                  'motorId': 23,
+                  'iq_ref': 0.5,
+                });
+                bleCubit.sendSingleCmd(iqcmd);
               },
             ),
           ],

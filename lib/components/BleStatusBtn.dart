@@ -54,7 +54,12 @@ class BleStatusBtn extends StatelessWidget {
                 child: Text('连接设备'),
               ),
             if (state.status == BleStatus.connecting)
-              ElevatedButton(onPressed: () {}, child: Text('连接中')),
+              ElevatedButton(
+                onPressed: () {
+                  openDialog(bleCubit);
+                },
+                child: Text('连接中'),
+              ),
 
             if (state.status == BleStatus.connected)
               ElevatedButton(
@@ -63,6 +68,13 @@ class BleStatusBtn extends StatelessWidget {
                   openDialog(bleCubit);
                 },
                 child: Text('已连接'),
+              ),
+            if (state.status == BleStatus.disconnecting)
+              ElevatedButton(
+                onPressed: () {
+                  openDialog(bleCubit);
+                },
+                child: Text('断开中'),
               ),
           ],
         );

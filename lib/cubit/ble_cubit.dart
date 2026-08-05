@@ -16,6 +16,7 @@ enum BleStatus {
   unknow,
   connecting,
   connected,
+  disconnecting,
   disconnected,
   error, // 发生错误
 }
@@ -268,7 +269,6 @@ class BleCubit extends Cubit<BleState> {
   }
 
   setNotify() async {
-    print("--- setNotify");
     if (state.characteristic != null) {
       // final subscription = state.characteristic!.lastValueStream.listen((
       final subscription = state.characteristic!.onValueReceived.listen((
@@ -290,26 +290,42 @@ class BleCubit extends Cubit<BleState> {
 
       try {
         await state.characteristic?.setNotifyValue(true);
-        // await state.characteristic?.setIndicationsValue(true);
       } catch (err) {
-        print("---setNotify: ${err.toString()}");
+        // 设置失败的话，尝试断开连接
+        /// 经过测试，这个没啥效果。等待优化
+        await Future.delayed(Duration(milliseconds: 1000));
+        try {
+          if (state.device != null && state.device!.isConnected) {
+            await state.device?.disconnect().timeout(
+              const Duration(seconds: 2),
+            );
+            setStatus('bleDisconnectDevice', BleStatus.disconnected);
+            emit(state.copyWith(device: null, characteristic: null));
+          }
+        } catch (dcError) {
+          setStatus('bleDisconnectDevice', BleStatus.error);
+          print("断连也失败了，忽略异常，让系统底层慢慢清理: $dcError");
+        }
       }
     }
   }
 
   Future<String> bleDisconnectDevice(BluetoothDevice device) async {
+    if (state.characteristic?.isNotifying == false) {
+      return "setNotify暂未完成";
+    }
+    setStatus('bleDisconnectDevice', BleStatus.disconnecting);
+    // await Future.delayed(Duration(milliseconds: 500));
     try {
       await device.disconnect();
-      //直接设置为等待扫描状态
-      // emit(state.copyWith(status: BleStatus.scan, device: null));
       setStatus('bleDisconnectDevice', BleStatus.disconnected);
-      emit(state.copyWith(device: null));
+      emit(state.copyWith(device: null, characteristic: null));
       return '';
     } catch (e) {
-      // emit(state.copyWith(status: BleStatus.connecting, device: null));
-      setStatus('bleDisconnectDevice', BleStatus.connected);
-      // emit(state.copyWith(device: null));
-      print('断开连接设备失败: $e');
+      await device.disconnect();
+      setStatus('bleDisconnectDevice', BleStatus.disconnected);
+      emit(state.copyWith(device: null, characteristic: null));
+      print('断开连接设备时出现错误: $e');
       return e.toString();
     }
   }
@@ -332,8 +348,6 @@ class BleCubit extends Cubit<BleState> {
       });
 
       // 2. 断开连接时取消监听
-      // delayed: true → 延迟取消，确保能收到 disconnected 事件（仅适用于 connectionState 监听）
-      // next: true → 仅取消下一次断开连接的监听（适用于连接前初始化的监听）
       state.device?.cancelWhenDisconnected(
         subscription as StreamSubscription,
         delayed: true,

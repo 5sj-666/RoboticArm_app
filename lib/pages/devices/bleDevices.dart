@@ -25,7 +25,8 @@ class BleDevices extends StatelessWidget {
               trailing:
                   state.device?.remoteId.str == device.remoteId.str &&
                       (state.status == BleStatus.connecting ||
-                          state.status == BleStatus.connected)
+                          state.status == BleStatus.connected ||
+                          state.status == BleStatus.disconnecting)
                   ? FilledButton(
                       style: ButtonStyle(
                         shape: WidgetStatePropertyAll(
@@ -36,9 +37,16 @@ class BleDevices extends StatelessWidget {
                         // backgroundColor
                       ),
                       child: Text(
-                        state.status == BleStatus.connecting ? '连接中' : '断开连接',
+                        state.status == BleStatus.connecting
+                            ? '连接中'
+                            : state.status == BleStatus.disconnecting
+                            ? '断开中'
+                            : '断开连接',
                       ),
                       onPressed: () async {
+                        if (state.status == BleStatus.disconnecting) {
+                          return;
+                        }
                         if (device.isConnected == false) return;
                         String result = await bleCubit.bleDisconnectDevice(
                           device,
