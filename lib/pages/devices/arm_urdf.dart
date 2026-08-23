@@ -164,24 +164,73 @@ class FlutterGameState extends State<ArmPage> {
 
     // 加载 URDF 文件
     robot = await URDFLoader.parse(
-      "assets/urdf/roboticArm.urdf", // URDF 文件路径
+      // "assets/urdf/roboticArm.urdf", // URDF 文件路径
+      "assets/robotic_urdf/urdf/robotic_arm.urdf", // URDF 文件路径
       "assets/urdf", // Mesh 文件的基础路径
       URDFLoaderOptions(
         materialCb: (linkName, visualNode, material) {
           return three.MeshStandardMaterial({
             three.MaterialProperty.color: material.color, // 使用原始颜色
-            three.MaterialProperty.metalness: 0.35, // 金属感
-            three.MaterialProperty.roughness: 0.05, // 粗糙度
-            three.MaterialProperty.reflectivity: 2.0, // 环境贴图强度
+            three.MaterialProperty.metalness: 0.25, // 金属感
+            three.MaterialProperty.roughness: 0.015, // 粗糙度
+            three.MaterialProperty.reflectivity: 1.0, // 环境贴图强度
             three.MaterialProperty.lights: true, // 启用光照
           });
         },
       ),
     );
 
-    robot!.transform.localRotation = three.Quaternion().setFromEuler(
-      three.Euler(math.pi / 2, 0, math.pi),
-    );
+    // robot!.transform.localRotation = three.Quaternion().setFromEuler(
+    //   three.Euler(math.pi / 2, 0, math.pi),
+    // );
+
+    // 在加载完 urdf 得到 robot 对象后执行
+
+    // robot?.getObject().traverse((object) {
+    //   if (object is three.Mesh) {
+    //     print("当前扫描到的Mesh名称为: ${object.name}");
+    //   }
+    // });
+
+    // 1. 判断机器人对象不为空
+    if (robot != null) {
+      // 2. 使用 .getObject() 获取 Three.js 原生 3D 组对象
+      final robotGroup = robot?.getObject();
+      int meshCount = 0;
+      robotGroup?.traverse((object) {
+        if (object is three.Mesh) {
+          if (meshCount == 10) {
+            if (object.material != null) {
+              // 允许双面接收光照
+              object.material?.side = three.DoubleSide;
+
+              // 显式通知引擎材质属性已更新
+              object.material?.needsUpdate = true;
+            }
+          }
+          print(
+            "【Mesh 序号: $meshCount】 -> 节点真实名称: ${object.name} -> 类型: ${object.type}",
+          );
+          meshCount++; // 每找到一个 Mesh，序号加 1
+        }
+      });
+
+      // // 3. 对原生 3D 对象调用 traverse 遍历
+      // robotGroup?.traverse((object) {
+      //   // 筛选出 1 关节和 3 关节的 Mesh（根据你在 URDF 里定义的 link 名字）
+      //   if (object is three.Mesh &&
+      //       (object.name == "link_1" || object.name == "link_3")) {
+      //     if (object.material != null) {
+      //       // 允许双面接收光照
+      //       object.material?.side = three.DoubleSide;
+
+      //       // 显式通知引擎材质属性已更新
+      //       object.material?.needsUpdate = true;
+      //     }
+      //   }
+      // });
+    }
+
     threeJs.scene.add(robot!.getObject());
 
     // 类似web的requestAniamtionFrame

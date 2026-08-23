@@ -91,4 +91,14 @@ flutter:
     - assets/urdf/stl/link4.STL
     - assets/urdf/stl/link5.STL
     - assets/urdf/roboticArm.urdf
+
+    - assets/robotic_urdf/urdf/robotic_arm.urdf
+    - assets/robotic_urdf/meshes/base_link.STL
+    - assets/robotic_urdf/meshes/Link1.STL
+    - assets/robotic_urdf/meshes/Link2.STL
+    - assets/robotic_urdf/meshes/Link3.STL
+    - assets/robotic_urdf/meshes/Link4.STL
+    - assets/robotic_urdf/meshes/Link5.STL
+    - assets/robotic_urdf/meshes/Link6.STL
+
     - .env
