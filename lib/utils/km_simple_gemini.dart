@@ -229,7 +229,8 @@ class RobotKm {
       }
     }
 
-    return bestSolution.map((e) => _toDeg(e)).toList();
+    // return bestSolution.map((e) => _toDeg(e)).toList();
+    return bestSolution;
   }
 
   static double _toDeg(double rad) {

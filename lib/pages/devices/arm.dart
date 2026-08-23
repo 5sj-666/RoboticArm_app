@@ -29,6 +29,9 @@ import 'package:robotic_arm_app/utils/km_simple_gemini.dart';
 import 'package:vector_math/vector_math_64.dart' as vector_math;
 import 'dart:typed_data';
 
+import 'package:robotic_arm_app/utils/km_pieper.dart';
+// KmPieper.fk();
+
 class SplineObj {
   final three.CatmullRomCurve3 curve;
   final three.Line line;
@@ -632,20 +635,35 @@ class FlutterGameState extends State<ArmPage> {
           final targetMatrix = three.Matrix4();
           targetMatrix.compose(tempPoint, q, scale);
 
-          List<List<double>> allSolutions = RobotKm.ik(
-            threeMat2mat(targetMatrix),
-          );
+          List<double> curJointsRad =
+              [
+                jointsCubit.state.joint1,
+                -jointsCubit.state.joint2 + 90,
+                -jointsCubit.state.joint3 - 90,
+                jointsCubit.state.joint4,
+                -jointsCubit.state.joint5,
+                jointsCubit.state.joint6,
+              ].map((item) {
+                return item * math.pi / 180;
+              }).toList();
 
-          List<double> goodOneSol = RobotKm.getBestSolution(
+          List<List<double>> allSolutions = KmPieper.ik(
+            threeMat2mat(targetMatrix),
+            curJointsRad,
+          );
+          List<double> goodOneSol = KmPieper.getBestSolution(
             allSolutions,
             ikCubit.state.preJointsRad,
           );
+          // goodOneSol[1] = (goodOneSol[1] - math.pi / 2);
+          // goodOneSol[2] = goodOneSol[2] + math.pi / 2;
+
           ikCubit.setPreJointsRad(List<double>.from(goodOneSol));
 
           // print("allSolutions");
-          for (int i = 0; i < allSolutions.length; i++) {
-            print("逆解：${allSolutions[i]}");
-          }
+          // for (int i = 0; i < allSolutions.length; i++) {
+          //   print("逆解：${allSolutions[i]}");
+          // }
 
           if (allSolutions.isEmpty) {
             if (t >= 1.0) {
@@ -992,6 +1010,32 @@ class FlutterGameState extends State<ArmPage> {
 
     threeJs.renderer?.autoClear = false;
 
+    // 用来渲染正解位置姿态
+    var fkGeo = three.BoxGeometry(0.1, 0.04, 0.02);
+    var fkMaterial = three.MeshBasicMaterial({
+      // color: 0x00ff00,
+      // wireframe: false // 实体，不是线框
+    });
+    var fkCube = three.Mesh(fkGeo, fkMaterial);
+    zeroWrapper.add(fkCube);
+
+    final fkR = KmPieper.fk([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    print('fkr: ${[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}');
+
+    List<double> curJointsRad = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0].map((item) {
+      return item * math.pi / 180;
+    }).toList();
+
+    List<List<double>> solutionsRad = KmPieper.ik(
+      fkR.transformation,
+      curJointsRad,
+    );
+
+    List<double> sol = KmPieper.getBestSolution(solutionsRad, curJointsRad);
+    print(
+      "bestSol: ${sol.map((e) => double.parse((e * 180 / math.pi).toStringAsFixed(4))).toList()}",
+    );
+
     void render() {
       threeJs.addAnimationEvent((dt) {
         nodeCtrol.mode = ikCubit.state.dragPose.mode;
@@ -1021,6 +1065,37 @@ class FlutterGameState extends State<ArmPage> {
         fourWrapper.rotation.z = (jointsCubit.state.joint4 * math.pi) / 180;
         fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
         sixWrapper.rotation.z = (jointsCubit.state.joint6 * math.pi) / 180;
+
+        final fkResult = KmPieper.fk([
+          jointsCubit.state.joint1,
+          -jointsCubit.state.joint2,
+          -jointsCubit.state.joint3,
+          jointsCubit.state.joint4,
+          -jointsCubit.state.joint5,
+          jointsCubit.state.joint6,
+        ]);
+
+        // print("fkResult: $fkResult");
+        fkCube.position = three.Vector3(
+          fkResult.position.x,
+          fkResult.position.y,
+          fkResult.position.z,
+        );
+        fkCube.quaternion.set(
+          fkResult.quaternion.x,
+          fkResult.quaternion.y,
+          fkResult.quaternion.z,
+          fkResult.quaternion.w,
+        );
+
+        // KmPieper.ik(threeMat2mat(fkCube.matrix));
+        // List<List<double>> allSolutions =
+        // KmPieper.ik(threeMat2mat(fkCube.matrix));
+
+        // List<double> goodOneSol = RobotKm.getBestSolution(
+        //   allSolutions,
+        //   ikCubit.state.preJointsRad,
+        // );
 
         threeJs.renderer?.render(threeJs.scene, threeJs.camera);
       });

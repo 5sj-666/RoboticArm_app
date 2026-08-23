@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // import 'package:three_js_helpers/three_js_helpers.dart';
 // import 'package:flutter/services.dart';
 import 'arm.dart'; // 引入机械臂页面
+// import 'arm_urdf.dart';
 import 'information.dart'; // 引入设备信息页面
 import 'package:robotic_arm_app/cubit/ik_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
@@ -31,7 +32,8 @@ class DevicesPage extends StatelessWidget {
                 builder: (motionContext, motionsState) {
                   return Stack(
                     children: [
-                      if (motionsCubit.state.status == MotionStatus.idle)
+                      if (motionsCubit.state.status == MotionStatus.idle ||
+                          motionsCubit.state.status == MotionStatus.designPath)
                         Positioned(
                           top: 20,
                           left: 10,
