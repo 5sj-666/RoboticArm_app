@@ -193,7 +193,8 @@ class RobotKm {
 
     // 如果没有当前角度，默认取第一组
     if (currentAngles.isEmpty) {
-      return allSolutions[0].map((e) => _toDeg(e)).toList();
+      // return allSolutions[0].map((e) => _toDeg(e)).toList();
+      return allSolutions[0];
     }
 
     // 1. 将当前角度从角度转回弧度（如果你传入的是角度，请确保单位统一）
@@ -233,9 +234,9 @@ class RobotKm {
     return bestSolution;
   }
 
-  static double _toDeg(double rad) {
-    return double.parse((rad * 180 / pi).toStringAsFixed(4));
-  }
+  // static double _toDeg(double rad) {
+  //   return double.parse((rad * 180 / pi).toStringAsFixed(4));
+  // }
 
   //传入位置和姿态四元数，返回一个矩阵；
   static Matrix4 convertPose2Mat(Vector3 position, Quaternion rotation) {

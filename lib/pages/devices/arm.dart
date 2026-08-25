@@ -30,7 +30,7 @@ import 'package:vector_math/vector_math_64.dart' as vector_math;
 import 'dart:typed_data';
 
 import 'package:robotic_arm_app/utils/km_pieper.dart';
-// KmPieper.fk();
+import 'package:robotic_arm_app/utils/RNEA.dart';
 
 class SplineObj {
   final three.CatmullRomCurve3 curve;
@@ -1019,6 +1019,7 @@ class FlutterGameState extends State<ArmPage> {
     var fkCube = three.Mesh(fkGeo, fkMaterial);
     zeroWrapper.add(fkCube);
 
+    /// 逆解
     final fkR = KmPieper.fk([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
     print('fkr: ${[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}');
 
@@ -1034,6 +1035,27 @@ class FlutterGameState extends State<ArmPage> {
     List<double> sol = KmPieper.getBestSolution(solutionsRad, curJointsRad);
     print(
       "bestSol: ${sol.map((e) => double.parse((e * 180 / math.pi).toStringAsFixed(4))).toList()}",
+    );
+
+    /// 计算力矩
+    final solver = ArmDynamicsSolver();
+
+    // 示例输入：当前关节位置 (rad)、角速度 (rad/s)、角加速度 (rad/s^2)
+    List<double> currentQ = [0.0, 0.0, 0.0 + math.pi / 2, 0.0, 0.0, 0.0];
+    List<double> currentDq = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    List<double> currentDdq = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+    // 求解各关节估计力矩 (N·m)
+    List<double> jointTorques = solver.computeTorques(
+      currentQ,
+      currentDq,
+      currentDdq,
+    );
+
+    print(
+      "关节 1-6 理论力矩: ${jointTorques.map((e) {
+        return double.parse(e.toStringAsFixed(4));
+      })}",
     );
 
     void render() {
