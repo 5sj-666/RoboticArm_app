@@ -11,6 +11,7 @@ import 'information.dart'; // 引入设备信息页面
 import 'package:robotic_arm_app/cubit/ik_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:three_js_transform_controls/transform_controls_gizmo.dart';
+import './component/motorDashboard.dart';
 
 class DevicesPage extends StatelessWidget {
   const DevicesPage({super.key});
@@ -25,6 +26,7 @@ class DevicesPage extends StatelessWidget {
         children: [
           ArmPage(),
           DeviceInformationPage(),
+          MotorDashboard(),
 
           BlocBuilder<IKCubit, IKState>(
             builder: (buildContext, ikState) {

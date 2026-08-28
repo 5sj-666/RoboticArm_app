@@ -13,6 +13,7 @@ import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
+import 'package:robotic_arm_app/cubit/motor_state_cubit.dart';
 import 'package:robotic_arm_app/cubit/ik_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:three_js_objects/three_js_objects.dart';
@@ -49,6 +50,7 @@ class ArmPage extends StatefulWidget {
 class FlutterGameState extends State<ArmPage> {
   late three.ThreeJS threeJs;
   late JointsCubit jointsCubit;
+  late MotorStateCubit motorStateCubit;
   late MotionsCubit motionsCubit;
   late BleCubit bleCubit;
   late MotorLogCubit motorLogCubit;
@@ -93,6 +95,7 @@ class FlutterGameState extends State<ArmPage> {
 
     // 在这里安全获取 context 相关的依赖
     jointsCubit = BlocProvider.of<JointsCubit>(context);
+    motorStateCubit = BlocProvider.of<MotorStateCubit>(context);
     motionsCubit = BlocProvider.of<MotionsCubit>(context);
     motorLogCubit = BlocProvider.of<MotorLogCubit>(context);
     bleCubit = BlocProvider.of<BleCubit>(context);
@@ -1039,21 +1042,28 @@ class FlutterGameState extends State<ArmPage> {
 
     /// 计算力矩
     final solver = ArmDynamicsSolver();
+    // 1. 关节角度 currentQ (rad) -> 对应角度 [0°, 90°, -90°, 0°, 0°, 0°]
+    List<double> currentQ = [
+      0.0,
+      math.pi / 2, // 1.5707963267948966 rad
+      -math.pi / 2, // -1.5707963267948966 rad
+      0.0,
+      0.0,
+      0.0,
+    ];
 
-    // 示例输入：当前关节位置 (rad)、角速度 (rad/s)、角加速度 (rad/s^2)
-    List<double> currentQ = [0.0, 0.0, 0.0 + math.pi / 2, 0.0, 0.0, 0.0];
+    // 2. 角速度 currentDq (rad/s) 与 角加速度 currentDdq (rad/s^2) 均为 0
     List<double> currentDq = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
     List<double> currentDdq = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
-    // 求解各关节估计力矩 (N·m)
+    // 3. 求解静态力矩
     List<double> jointTorques = solver.computeTorques(
       currentQ,
       currentDq,
       currentDdq,
     );
-
     print(
-      "关节 1-6 理论力矩: ${jointTorques.map((e) {
+      "---关节 1-6 理论力矩: ${jointTorques.map((e) {
         return double.parse(e.toStringAsFixed(4));
       })}",
     );
@@ -1109,6 +1119,35 @@ class FlutterGameState extends State<ArmPage> {
           fkResult.quaternion.z,
           fkResult.quaternion.w,
         );
+
+        List<double> currentQ =
+            [
+              jointsCubit.state.joint1,
+              -jointsCubit.state.joint2,
+              -jointsCubit.state.joint3,
+              jointsCubit.state.joint4,
+              -jointsCubit.state.joint5,
+              jointsCubit.state.joint6,
+            ].map((e) {
+              return e * math.pi / 180;
+            }).toList();
+
+        currentQ[1] = currentQ[1] + math.pi / 2;
+        currentQ[2] = currentQ[2] - math.pi / 2;
+
+        // print("---currentQ: $currentQ");
+
+        List<double> currentDq = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        List<double> currentDdq = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+        // 求解各关节估计力矩 (N·m)
+        List<double> jointTorques = solver.computeTorques(
+          currentQ,
+          currentDq,
+          currentDdq,
+        );
+
+        motorStateCubit.setTs(jointTorques);
 
         // KmPieper.ik(threeMat2mat(fkCube.matrix));
         // List<List<double>> allSolutions =

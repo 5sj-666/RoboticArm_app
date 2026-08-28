@@ -25,11 +25,11 @@ class SlidingPanelContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void _updateJointValue(double newVal, int index) {
-      print('_updateJointValue: newval: $newVal ,index$index');
+      // print('_updateJointValue: newval: $newVal ,index$index');
 
       Future.delayed(const Duration(seconds: 0), () {
         jointsCubit.setSingleJoint('joint${index + 1}', newVal);
-        print('Information Page 关节$index: ${jointsCubit.state}');
+        // print('Information Page 关节$index: ${jointsCubit.state}');
       });
     }
 

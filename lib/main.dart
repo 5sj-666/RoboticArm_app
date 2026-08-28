@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robotic_arm_app/cubit/joints_cubit.dart';
+import 'package:robotic_arm_app/cubit/motor_state_cubit.dart';
 import 'package:robotic_arm_app/cubit/motions_cubit.dart';
 import 'package:robotic_arm_app/cubit/keyframe_cubit.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
@@ -23,6 +24,7 @@ void main() async {
     MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => JointsCubit()),
+        BlocProvider(create: (context) => MotorStateCubit()),
         BlocProvider(create: (context) => MotionsCubit()),
         BlocProvider(create: (context) => HomeCubit()),
         BlocProvider(create: (context) => IKCubit()),
