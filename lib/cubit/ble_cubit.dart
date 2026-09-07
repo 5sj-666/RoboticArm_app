@@ -5,7 +5,10 @@ import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 // import 'package:robotic_arm_app/utils/motorCmd.dart';
 import 'package:robotic_arm_app/pages/devices/motor/motorLogCubit.dart';
+import 'package:robotic_arm_app/cubit/joints_cubit.dart';
+import 'package:robotic_arm_app/cubit/motor_state_cubit.dart';
 import 'dart:math' as math;
+import 'package:robotic_arm_app/utils/RNEA.dart';
 
 // 未打开蓝牙，已打开蓝牙， 未知蓝牙（ios的未授权状态）， 未扫描， 扫描中， 扫描完成， 未连接，连接中，已连接
 enum BleStatus {
@@ -88,8 +91,11 @@ class BleState {
 
 class BleCubit extends Cubit<BleState> {
   final MotorLogCubit? _motorLogCubit;
+  final JointsCubit? _jointsCubit;
+  final MotorStateCubit? _motorStateCubit;
 
-  BleCubit(this._motorLogCubit) : super(BleState());
+  BleCubit(this._motorLogCubit, this._jointsCubit, this._motorStateCubit)
+    : super(BleState());
 
   // 设置蓝牙的状态值，所有更改BleState.state.status的行为都通过这个函数，以便调试定位
   setStatus(String funcName, BleStatus status) {
@@ -268,16 +274,78 @@ class BleCubit extends Cubit<BleState> {
     });
   }
 
+  /// 接受来自蓝牙从机端的通知
   setNotify() async {
+    final that = this;
+    String parseMsg = '';
     if (state.characteristic != null) {
       // final subscription = state.characteristic!.lastValueStream.listen((
       final subscription = state.characteristic!.onValueReceived.listen((
         List<int> value,
       ) {
         print('----接收到来自蓝牙的通知 : $value');
-        // _motorLogCubit.addLog(cmd: value);
+
+        /// 将要实现的功能如下：
+        /// 需要对消息进行处理：如果返回的是以下数据结构：长度为7的数组，第一个表示类型： 3表示力矩模式，后边的六个数是当前关节的位置
+        /// 那么在此需要将其转为double数组，并将数值设置到joints_cubit中，然后重新将动力学模型计算出来的力矩发送给单片机
+        /// 频率的话，暂时设置为1s一次
+        /// 接收到的数据是28个字节的Uint8List，转为double数组后是7个double
+        if (value.length == 28) {
+          List<double> dataList = [];
+
+          final bytes = Uint8List.fromList(value);
+          final float32List = bytes.buffer.asFloat32List();
+          dataList = float32List.map((e) => e.toDouble()).toList();
+          parseMsg = dataList.toString();
+
+          print('---接收到来自蓝牙的通知 转换后的double值 : ${dataList.toString()}');
+          // value = dataList.map((e) => e.toInt()).toList();
+
+          // 说明是力矩模式的返回数据
+          if (dataList[0] == 3) {
+            /// 接收到的弧度， 赋值给关节时，需要转换为角度
+            for (int i = 1; i <= 6; i++) {
+              String jointName = 'joint$i';
+              _jointsCubit?.setSingleJoint(
+                jointName,
+                dataList[i] * 180 / math.pi,
+              );
+            }
+
+            _motorStateCubit?.setQs(dataList.sublist(1, 7));
+
+            List<double> currentQ = dataList.sublist(1, 7);
+            currentQ[1] = currentQ[1] + math.pi / 2;
+            currentQ[2] = currentQ[2] - math.pi / 2;
+
+            final solver = ArmDynamicsSolver();
+
+            List<double> jointTorques = solver.computeTorques(
+              currentQ,
+              List.filled(6, 0.0),
+              List.filled(6, 0.0),
+            );
+
+            /// 将得到的力矩保留三位小数
+            jointTorques = jointTorques
+                .map((e) => double.parse(e.toStringAsFixed(3)))
+                .toList();
+
+            print('---ble_cubit: 计算得到的力矩: ${jointTorques.toString()}');
+
+            // that.sendMsg([3, ...jointTorques]);
+            List<double> message = [3.0, ...jointTorques];
+            //接受的是double数组，将其转为unit8List
+            Float32List floatList = Float32List.fromList(message);
+            // 转换为字节数组
+            Uint8List byteList = floatList.buffer.asUint8List();
+            // print('---发送帧$byteList');
+            that.sendSingleCmd(byteList, parseMsg: message.toString());
+          }
+        }
+
         if (_motorLogCubit != null) {
-          _motorLogCubit.addLog(cmd: value, role: "R");
+          _motorLogCubit.addLog(cmd: value, role: "R", parseMsg: parseMsg);
         }
         // lastValueStream 触发场景：
         // - 调用 read() 后
@@ -408,11 +476,11 @@ class BleCubit extends Cubit<BleState> {
   }
 
   /// 通过蓝牙直接发送点击指令
-  sendSingleCmd(List<int> cmd) async {
+  sendSingleCmd(List<int> cmd, {String parseMsg = ''}) async {
     if (state.characteristic != null) {
       await state.characteristic!.write(cmd, withoutResponse: false);
       if (_motorLogCubit != null) {
-        _motorLogCubit.addLog(cmd: cmd, role: "S");
+        _motorLogCubit.addLog(cmd: cmd, role: "S", parseMsg: parseMsg);
       }
     }
   }

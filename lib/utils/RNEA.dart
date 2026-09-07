@@ -66,7 +66,8 @@ class ArmDynamicsSolver {
       ),
       // Link 3
       LinkData(
-        mass: 0.5138,
+        // mass: 0.5138,
+        mass: 0,
         rc: Vector3(0.0380, 0.0000, -0.0630),
         inertia: Matrix3(
           0.0007,
@@ -85,7 +86,8 @@ class ArmDynamicsSolver {
       ),
       // Link 4
       LinkData(
-        mass: 0.6280,
+        // mass: 0.6280,
+        mass: 0,
         rc: Vector3(0.0027, -0.0466, 0.1746),
         inertia: Matrix3(
           0.0066,
@@ -104,7 +106,8 @@ class ArmDynamicsSolver {
       ),
       // Link 5
       LinkData(
-        mass: 0.4290,
+        // mass: 0.4290,
+        mass: 0,
         rc: Vector3(0.0000, 0.0354, -0.0431),
         inertia: Matrix3(
           0.0004,
@@ -123,7 +126,8 @@ class ArmDynamicsSolver {
       ),
       // Link 6
       LinkData(
-        mass: 0.0041,
+        // mass: 0.0041,
+        mass: 0,
         rc: Vector3(0.0000, 0.0000, 0.0020),
         inertia: Matrix3(
           0.0000,
@@ -184,22 +188,29 @@ class ArmDynamicsSolver {
     // 1. 前向递归 (i = 0 -> 5，对应关节 1 -> 6)
     for (int i = 0; i < 6; i++) {
       final link = links[i];
+      // ignore: non_constant_identifier_names
       final R_i_prev = _getMDHRotation(link.alpha, q[i]);
       R[i] = R_i_prev;
       P[i] = _getMDHTranslation(link.alpha, link.a, link.d);
 
+      // ignore: non_constant_identifier_names
       final R_trans = Matrix3.copy(R_i_prev)..transpose();
 
+      // ignore: non_constant_identifier_names
       final w_prev = i == 0 ? Vector3.zero() : w[i - 1];
+      // ignore: non_constant_identifier_names
       final dw_prev = i == 0 ? Vector3.zero() : dw[i - 1];
+      // ignore: non_constant_identifier_names
       final a_prev = i == 0 ? (R_trans * (-g)) : a[i - 1];
 
+      // ignore: non_constant_identifier_names
       final z_axis = Vector3(0.0, 0.0, 1.0);
 
       // 角速度 w_i = R^T * w_{i-1} + dq_i * z
       w[i] = (R_trans * w_prev) + (z_axis * dq[i]);
 
       // 角加速度 dw_i = R^T * dw_{i-1} + ddq_i * z + (R^T * w_{i-1}) x (dq_i * z)
+      // ignore: non_constant_identifier_names
       final w_rot = R_trans * w_prev;
       dw[i] =
           (R_trans * dw_prev) + (z_axis * ddq[i]) + w_rot.cross(z_axis * dq[i]);
@@ -218,19 +229,25 @@ class ArmDynamicsSolver {
 
     // 2. 反向递归 (i = 5 -> 0，对应关节 6 -> 1)
     List<double> torques = List.filled(6, 0.0);
+    // ignore: non_constant_identifier_names
     Vector3 f_next = Vector3.zero();
+    // ignore: non_constant_identifier_names
     Vector3 n_next = Vector3.zero();
 
     for (int i = 5; i >= 0; i--) {
       final link = links[i];
 
+      // ignore: non_constant_identifier_names
       Matrix3 R_succ = i == 5 ? Matrix3.identity() : R[i + 1];
+      // ignore: non_constant_identifier_names
       Vector3 P_succ = i == 5 ? Vector3.zero() : P[i + 1];
 
       // 关节传导力 f_i = R_{i+1} * f_{i+1} + F_i
+      // ignore: non_constant_identifier_names
       Vector3 f_i = (R_succ * f_next) + F[i];
 
       // 关节传导力矩 n_i = N_i + R_{i+1} * n_{i+1} + rc_i x F_i + P_{i+1} x (R_{i+1} * f_{i+1})
+      // ignore: non_constant_identifier_names
       Vector3 n_i =
           N[i] +
           (R_succ * n_next) +

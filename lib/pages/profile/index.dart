@@ -3,6 +3,7 @@ import 'package:robotic_arm_app/utils/sharedPreferences.dart';
 import 'package:robotic_arm_app/utils/motorCmd.dart';
 import 'package:robotic_arm_app/cubit/ble_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:typed_data';
 
 class ProfilePage extends StatelessWidget {
   @override
@@ -133,25 +134,40 @@ class ProfilePage extends StatelessWidget {
               leading: Icon(Icons.logout),
               title: Text('力矩模式 t'),
               onTap: () {
-                // for (int i = 21; i < 21 + 6; i++) {
-                //   /// 设置runmode
-                //   final cmd = mortorCmd.generateCMD('run_mode', {
-                //     'motorId': i,
-                //     'run_mode': 3,
-                //   });
-                //   bleCubit.sendSingleCmd(cmd);
-                //   print('设置力矩:$i');
-                // }
-                final cmd = mortorCmd.generateCMD('run_mode', {
-                  'motorId': 23,
-                  'run_mode': 3,
+                // // for (int i = 21; i < 21 + 6; i++) {
+                // //   /// 设置runmode
+                // //   final cmd = mortorCmd.generateCMD('run_mode', {
+                // //     'motorId': i,
+                // //     'run_mode': 3,
+                // //   });
+                // //   bleCubit.sendSingleCmd(cmd);
+                // //   print('设置力矩:$i');
+                // // }
+                // final cmd = mortorCmd.generateCMD('run_mode', {
+                //   'motorId': 23,
+                //   'run_mode': 3,
+                // });
+                // bleCubit.sendSingleCmd(cmd);
+                // final iqcmd = mortorCmd.generateCMD('iq_ref', {
+                //   'motorId': 23,
+                //   'iq_ref': 0.5,
+                // });
+                // bleCubit.sendSingleCmd(iqcmd);
+                bleCubit.sendSingleCmd([0x3]);
+
+                Future.delayed(Duration(seconds: 3), () {
+                  List<double> message = [3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+                  //接受的是double数组，将其转为unit8List
+                  Float32List floatList = Float32List.fromList(message);
+                  // 转换为字节数组
+                  Uint8List byteList = floatList.buffer.asUint8List();
+                  // print('---发送帧$byteList');
+                  bleCubit.sendSingleCmd(
+                    byteList,
+                    parseMsg: message.toString(),
+                  );
+                  // motorLogCubit.addLog(cmd: message, role: "S");
                 });
-                bleCubit.sendSingleCmd(cmd);
-                final iqcmd = mortorCmd.generateCMD('iq_ref', {
-                  'motorId': 23,
-                  'iq_ref': 0.5,
-                });
-                bleCubit.sendSingleCmd(iqcmd);
               },
             ),
           ],

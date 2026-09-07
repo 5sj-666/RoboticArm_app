@@ -35,7 +35,9 @@ void main() async {
         BlocProvider(
           create: (context) {
             final motorLogCubit = context.read<MotorLogCubit>();
-            return BleCubit(motorLogCubit);
+            final jointsCubit = context.read<JointsCubit>();
+            final motorStateCubit = context.read<MotorStateCubit>();
+            return BleCubit(motorLogCubit, jointsCubit, motorStateCubit);
           },
         ),
       ],

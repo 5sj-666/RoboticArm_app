@@ -25,14 +25,18 @@ class MotorLogState {
 class MotorLogCubit extends Cubit<MotorLogState> {
   MotorLogCubit() : super(MotorLogState());
 
-  void addLog({required List<int> cmd, String role = 'S'}) {
+  void addLog({
+    required List<int> cmd,
+    String role = 'S',
+    String parseMsg = '',
+  }) {
     final result = parseCmd(cmd);
     late MotorLog msg;
     if (result == null) {
       msg = MotorLog(
         cmd: cmd,
         role: role,
-        parseMsg: cmd.toString(),
+        parseMsg: parseMsg != '' ? parseMsg : cmd.toString(),
         timeStamp: '',
       );
     } else {

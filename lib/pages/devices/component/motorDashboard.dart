@@ -60,16 +60,16 @@ class _MotorDashboardState extends State<MotorDashboard>
     const crossAxisSpacing = 6.0;
     const childAspectRatio = 1.6;
     final horizontalPadding = _open ? 8.0 * 2 : 4.0 * 2; // left+right
-    final containerVerticalPadding = 8.0 * 2; // top+bottom
+    const containerVerticalPadding = 8.0 * 2; // top+bottom
 
     double estimateHeightForWidth(double w) {
       final contentWidth = math.max(0.0, w - horizontalPadding);
       final tileWidth = (contentWidth - crossAxisSpacing) / crossAxisCount;
       final tileHeight = tileWidth / childAspectRatio;
       final rows = (itemCount / crossAxisCount).ceil();
-      final gridVerticalPadding = 2.0 + 6.0; // GridView padding top + bottom
+      const gridVerticalPadding = 2.0 + 6.0; // GridView padding top + bottom
       final gridHeight = rows * tileHeight + (rows - 1) * mainAxisSpacing + gridVerticalPadding;
-      final headerHeight = 36.0; // title row + small spacing
+      const headerHeight = 36.0; // title row + small spacing
       final total = containerVerticalPadding + headerHeight + 6.0 /*SizedBox*/ + gridHeight;
       return total;
     }
