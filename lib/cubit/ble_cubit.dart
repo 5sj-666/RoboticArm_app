@@ -318,9 +318,14 @@ class BleCubit extends Cubit<BleState> {
             currentQ[1] = currentQ[1] + math.pi / 2;
             currentQ[2] = currentQ[2] - math.pi / 2;
 
-            final solver = ArmDynamicsSolver();
+            // final solver = ArmDynamicsSolver();
 
-            List<double> jointTorques = solver.computeTorques(
+            // List<double> jointTorques = solver.computeTorques(
+            //   currentQ,
+            //   List.filled(6, 0.0),
+            //   List.filled(6, 0.0),
+            // );
+            List<double> jointTorques = computeRNEA(
               currentQ,
               List.filled(6, 0.0),
               List.filled(6, 0.0),

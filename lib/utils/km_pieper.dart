@@ -24,15 +24,17 @@ class KinematicResult {
 
 class KmPieper {
   // 以下是soliworks精确的参数，与实体机械臂对应
-  // static const double d1 = 0.107;
-  // static const double a2 = 0.3;
-  // static const double d4 = 0.32315;
-  // static const double d6 = 0.0825;
-  // 以下是app模型的参数，暂时用来做测试
-  static const double d1 = 0.141;
+  static const double d1 = 0.107;
   static const double a2 = 0.3;
-  static const double d4 = 0.326;
-  static const double d6 = 0.09;
+  static const double d4 = 0.32315;
+  // static const double d6 = 0.0825;
+  // static const double d6 = 0.063;
+  static const double d6 = 0.085;
+  // 以下是app模型的参数，暂时用来做测试
+  // static const double d1 = 0.141;
+  // static const double a2 = 0.3;
+  // static const double d4 = 0.326;
+  // static const double d6 = 0.09;
 
   // 内部工具：角度与弧度转换
   static double _deg2rad(double deg) => deg * pi / 180.0;
