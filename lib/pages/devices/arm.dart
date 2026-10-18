@@ -31,6 +31,7 @@ import 'package:vector_math/vector_math_64.dart' as vector_math;
 import 'dart:typed_data';
 
 import 'package:robotic_arm_app/utils/km_pieper.dart';
+import 'package:robotic_arm_app/utils/km_pieper_user.dart';
 import 'package:robotic_arm_app/utils/RNEA.dart';
 
 class SplineObj {
@@ -1030,7 +1031,8 @@ class FlutterGameState extends State<ArmPage> {
     zeroWrapper.add(fkCube);
 
     /// 逆解
-    final fkR = KmPieper.fk([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    // final fkR = KmPieper.fk([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    final fkR = KmPieperUser.fk([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
     print('fkr: ${[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}');
 
     List<double> curJointsRad = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0].map((item) {
@@ -1108,7 +1110,7 @@ class FlutterGameState extends State<ArmPage> {
         fiveWrapper.rotation.z = -(jointsCubit.state.joint5 * math.pi) / 180;
         sixWrapper.rotation.z = (jointsCubit.state.joint6 * math.pi) / 180;
 
-        final fkResult = KmPieper.fk([
+        final fkResult = KmPieperUser.fk([
           jointsCubit.state.joint1,
           -jointsCubit.state.joint2,
           -jointsCubit.state.joint3,
